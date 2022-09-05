@@ -1,2 +1,2 @@
-# YSO_slab_model_fitter
+# nuts-for-ysos
 WIP
