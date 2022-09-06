@@ -60,6 +60,7 @@ def slope_feature_err(wave, left_end_y1, right_end_y1, left_end_y2, right_end_y2
     return slope_err
 
 def photometry_feature(wave, spectrum, filt):
+    c = 2.99792458 * (1e10)
     spectrum = 1e-17*spectrum #spectrum in ergs/s/cm^2/A
     temp_spectrum = spectrum * 1e29 * (wave**2) / (c*(10**8)) #units conversion
     nu =  c / wave
