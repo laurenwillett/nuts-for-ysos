@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import h5py
 import numpy as np
 import numpy.ma as ma
@@ -23,15 +17,11 @@ import scipy.stats as stats
 from scipy.stats.kde import gaussian_kde
 
 from import_templates import prep_scale_templates
-from VIRUS_h5_target_prep import from_example_h5file
+from VIRUS_target_prep import from_example_h5file
 from features_to_evaluate import make_feature_list
 from features_to_evaluate import photometry_feature
 from reddening import return_red_law_C89, reddening_function_C89
 from least_squares_fitter import least_squares_fit_function
-
-
-# In[2]:
-
 
 def make_gamma_dist(x1, p1, x2, p2):
     # Standardize so that x1 < x2 and p1 < p2
@@ -50,9 +40,6 @@ def make_gamma_dist(x1, p1, x2, p2):
     kde = gaussian_kde(gamma_dist)
     dist_space = np.linspace( min(gamma_dist), max(gamma_dist), 1000 )
     return dist_space, kde(dist_space)
-
-
-# In[3]:
 
 
 def pymc3_NUTS_fitting(def_wave_data, mean_resolution, Rv, YSO, YSO_err, distance_info, rmag_YSO, imag_YSO, name, target_accept_set):
@@ -344,26 +331,4 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, Rv, YSO, YSO_err, distanc
         trace0 = pm.sample(2000, chains = 16, cores = 16, target_accept = target_accept_set, start = {'T': best_fit_params[0], 'n_e_log': np.log10(best_fit_params[1]), 'tau_0': best_fit_params[2], 'Kslab_1e6': best_fit_params[3]*1e6, 'Kphot_1e6': best_fit_params[4]*1e6, 'Av': best_fit_params[5], 'Teff': best_fit_params[6], 'distance': d_target})
     with open(str(name)+'.pkl', 'wb') as buff:
         pickle.dump(trace0, buff)
-
-
-# In[4]:
-
-
-#h5filename = '20190101_0000021.h5'
-#h5index = 52
-#def_wave_UVB = np.arange(3470, 5542, 2)
-#template_Teffs, def_wave, templates_scaled, template_lums = prep_scale_templates(def_wave_UVB, 750) #maybe just define here
-#f = h5py.File('example_VIRUS_h5_files/'+h5filename, 'r')
-#YSO, YSO_err = from_example_h5file(h5filename, h5index, magscale = True)
-#ps_rmag_target = f['CatSpectra']['rmag'][h5index]
-#ps_imag_target = f['CatSpectra']['imag'][h5index]
-#distance_info = [303.156647,297.884674,307.583466] #parsecs
-#best_fit_params_ = least_squares_fit_function(def_wave_UVB, 750, 3.1, YSO, YSO_err, ps_rmag_target, ps_imag_target, plot=True)
-#pymc3_NUTS_fitting(def_wave_UVB, 750, 3.1, YSO, YSO_err, best_fit_params_, distance_info, ps_rmag_target, ps_imag_target, 'test_3')
-
-
-# In[ ]:
-
-
-
 
