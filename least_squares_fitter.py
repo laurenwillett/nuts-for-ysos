@@ -16,7 +16,7 @@ import theano.compile
 import theano.tensor as tt
 
 from import_templates import prep_scale_templates
-from VIRUS_h5_target_prep import from_example_h5file
+from VIRUS_target_prep import from_example_h5file
 from features_to_evaluate import make_feature_list
 from features_to_evaluate import photometry_feature
 from reddening import return_red_law_C89, reddening_function_C89
