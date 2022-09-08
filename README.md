@@ -1,6 +1,8 @@
 # nuts-for-ysos
-This is a python tool for determining, via Bayesian inference, the accretion luminosity of YSOs (Young Stellar Objects) in conjunction with their effective temperature, stellar luminosity, and extinction. The tool uses the NUTS (No U-Turn Sampler) implemented through PyMC3. 
 **See [insert paper] for a full description of the methodology and the model used in nuts-for-ysos, as well as the interpretation of example results from nuts-for-ysos.** 
+
+This is a python tool for determining, via Bayesian inference, the accretion luminosity of YSOs (Young Stellar Objects) in conjunction with their effective temperature, stellar luminosity, and extinction. The tool uses the NUTS (No U-Turn Sampler) implemented through PyMC3. 
+
 nuts-for-ysos was written by default for spectra from the VIRUS spectrograph (cite) but can be customized for other spectra; take note of the "input YSO spectrum requirements" section below.
 
 In brief:
