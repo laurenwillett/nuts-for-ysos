@@ -1,4 +1,25 @@
 # nuts-for-ysos
+This is a python tool for determining, via Bayesian inference, the accretion luminosity of YSOs (Young Stellar Objects) in conjunction with their effective temperature, stellar luminosity, and extinction. The tool uses the NUTS (No U-Turn Sampler) implemented through PyMC3. 
+**See [insert paper] for a full description of the methodology and the model used in nuts-for-ysos, as well as the interpretation of example results from nuts-for-ysos.** 
+nuts-for-ysos was written by default for spectra from the VIRUS spectrograph (cite) but can be customized for other spectra; take note of the "input YSO spectrum requirements" section below.
+
+In brief:
+The user must provide a spectrum of an accreting YSO in the UV-Optical range. Then, nuts-for-ysos fits a model to the YSO consisting of two components: (INCLUDE CITATIONS)
+  1. a plane-parallel slab of hydrogen in local thermodynamic equilibrium (LTE) to represent emission from accretion.
+  2. a non-accreting Class III YSO template spectrum
+NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, the trace for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use the trace to derive a probability distribution of the YSO's mass accretion rate (see [insert paper] for details)
+
+## package requirements (WIP)
+
+## input YSO spectrum requirements (WIP)
+The spectrum can be low or high resolution
+
+## customizable aspects of nuts-for-ysos (WIP)
+
+## useful links (WIP)
+
+# go nuts!
+
 To-do list:
 - Finish up the notebook that puts everything together and shows how to interpret results
 - Write useful annotations in notebook
