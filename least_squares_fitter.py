@@ -1,26 +1,16 @@
 from scipy.optimize import least_squares
-from scipy import interpolate
-from scipy import linalg 
-from scipy.interpolate import griddata
-from scipy.optimize import curve_fit
-from scipy.stats.kde import gaussian_kde
-import scipy.optimize as optimize
-import scipy.stats as stats
-import h5py
+from scipy import linalg
 import numpy as np
-import numpy.ma as ma
 import math
 from astropy.table import Table
 import matplotlib.pyplot as plt
-import theano.compile
+import theano
 import theano.tensor as tt
+from reddening import reddening_function_C89
 
 from import_templates import prep_scale_templates
-from VIRUS_target_prep import from_example_h5file
 from features_to_evaluate import make_feature_list
 from features_to_evaluate import photometry_feature
-from reddening import return_red_law_C89, reddening_function_C89
-
 
 def chi2_like(observed, errs, model):
     chi2 = 0
@@ -51,6 +41,7 @@ def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, Y
 
 
 def least_squares_fit_function(def_wave_data, mean_resolution, Rv, YSO, YSO_err,rmag_YSO, imag_YSO, plot):
+    print('performing initial least squares fit')
     template_Teffs, def_wave, templates_scaled, template_lums = prep_scale_templates(def_wave_data, mean_resolution)
     
     #Pan-STARRS filters
@@ -328,7 +319,7 @@ def least_squares_fit_function(def_wave_data, mean_resolution, Rv, YSO, YSO_err,
         return(best_fit_params)
     
     else:
-        return('no good least square fit')
+        print('no good least square fit')
 
 
 

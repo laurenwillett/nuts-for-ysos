@@ -1,26 +1,16 @@
-import h5py
 import numpy as np
-import numpy.ma as ma
 import math
-import matplotlib.pyplot as plt
 from astropy.table import Table
-import os
-import sys
 import pymc3 as pm
 import pickle
-import matplotlib.pyplot as plt
-from astropy.table import Table
 import theano.tensor as tt
-from numpy import linspace
 import scipy.optimize as optimize
 import scipy.stats as stats
 from scipy.stats.kde import gaussian_kde
 
 from import_templates import prep_scale_templates
-from VIRUS_target_prep import from_example_h5file
 from features_to_evaluate import make_feature_list
 from features_to_evaluate import photometry_feature
-from reddening import return_red_law_C89, reddening_function_C89
 from least_squares_fitter import least_squares_fit_function
 
 def make_gamma_dist(x1, p1, x2, p2):
@@ -73,6 +63,7 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, Rv, YSO, YSO_err, distanc
     
     best_fit_params = least_squares_fit_function(def_wave_data, mean_resolution, Rv, YSO, YSO_err, rmag_YSO, imag_YSO, plot=True)
     
+    print('initializing PyMC3 fitter')
     c = 2.99792458 * (1e10)
     nu = c*(1e8) / def_wave
     diff = def_wave[1]-def_wave[0]
@@ -292,7 +283,7 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, Rv, YSO, YSO_err, distanc
         temp_spectrum = 1e-17 *model * 1e29 * (def_wave**2) / (c*(10**8)) #units conversion
         dnu = tt.extra_ops.diff(nu)
         dnu = tt.concatenate([tt.stack(dnu[0]), dnu])
-        rmag = tt.dot((nu/dnu*temp_spectrum), filtr) / tt.sum((nu/dnu*filtr)) #is the error here?
+        rmag = tt.dot((nu/dnu*temp_spectrum), filtr) / tt.sum((nu/dnu*filtr))
         RMag = -2.5 * tt.log10(rmag) + 23.9
         imag = tt.dot((nu/dnu*temp_spectrum), filti) / tt.sum((nu/dnu*filti))
         IMag = -2.5 * tt.log10(imag) + 23.9

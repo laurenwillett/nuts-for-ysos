@@ -1,6 +1,5 @@
 from astropy.table import Table
 import numpy as np
-import h5py
 
 def from_example_fitsfile(filepath, magscale, ps_gmag_target):
     def_wave_UVB = np.arange(3470, 5542, 2)
@@ -48,6 +47,7 @@ def from_example_fitsfile(filepath, magscale, ps_gmag_target):
 
 
 def from_example_h5file(h5filename, h5index, magscale=True): #magscale is whether or not to rescale flux based off panstarrs g mag
+    import h5py
     
 #for example:
 #h5filename = '20190101_0000021.h5'

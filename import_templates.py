@@ -1,12 +1,10 @@
 from scipy import interpolate
 from scipy.optimize import curve_fit
 import numpy as np
-import numpy.ma as ma
 import math
-import matplotlib.pyplot as plt
+from astropy.table import Table 
 from astropy.convolution import Gaussian1DKernel
 from astropy.convolution import convolve
-from astropy.table import Table 
 
 def prep_scale_templates(def_wave_data, mean_resolution):
     #for M dwarfs beyond M0 the Teff scale is from: https://ui.adsabs.harvard.edu/abs/2003ApJ...593.1093L/abstract
