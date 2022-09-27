@@ -13,10 +13,11 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 
 ## package requirements (WIP)
 - numpy 1.18.1
-- matplotlib 3.2.2
 - theano 1.0.5
 - pymc3 3.9.3
+- astropy 4.2.1
 - corner 2.2.1
+- matplotlib 3.2.2
 
 ## input YSO spectrum requirements (WIP)
 The spectrum can be low or high resolution
