@@ -8,8 +8,8 @@ nuts-for-ysos was written by default for spectra from the VIRUS spectrograph at 
 In brief:
 The user must provide a spectrum of an accreting YSO in the UV-Optical range. Then, nuts-for-ysos fits a model to the YSO consisting of two components:
   1. a plane-parallel slab of hydrogen in local thermodynamic equilibrium (LTE) to represent emission from accretion.
-  2. a non-accreting Class III YSO template spectrum
-NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, the trace for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use the trace to derive the YSO's mass accretion rate using their favorite stellar evolution model(see [insert paper] for details)
+  2. a non-accreting Class III YSO template spectrum observed with the X-Shooter spectrograph (Manara+ 2013, 2017)
+NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, the trace for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use the trace to derive the YSO's mass accretion rate using their favorite stellar evolution model (see [insert paper] for details)
 
 ## package requirements (WIP)
 - numpy 1.18.1
@@ -20,9 +20,15 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 - matplotlib 3.2.2
 
 ## input YSO spectrum requirements (WIP)
-The spectrum can be low or high resolution
+Resolution: The input spectrum can be low or high resolution but can't be higher resolution than the template spectra! WIP; look at exact wavelength spacing for templates
 
 ## customizable aspects of nuts-for-ysos (WIP)
+built in:
+- If using VIRUS parallel spectra, you can choose whether or not to rescale the spectrum based off its PanSTARRS gmag
+- Resolution of template spectra
+- 
+
+- features_to_evaluate.py contains the particular spectrum features that are used in determining the best-fit model. These features can be altered from the default provided, just make sure you update the make_feature_list() function at the bottom of features_to_evaluate.py .
 
 ## useful links (WIP)
 
