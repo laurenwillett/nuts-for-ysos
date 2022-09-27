@@ -29,6 +29,7 @@ The spectrum can be low or high resolution
 
 To-do list:
 - Finish up the notebook that puts everything together and shows how to interpret results
+- use example fits files, as the h5 files are too big
 - Write useful annotations in notebook
 - Make sure each py file isn't importing anything unnecessary
 - Write notes in README for users about:
