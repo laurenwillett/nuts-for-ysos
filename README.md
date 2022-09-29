@@ -3,7 +3,7 @@
 
 This is a python tool for determining, via Bayesian inference, the accretion luminosity of YSOs (Young Stellar Objects) in conjunction with their effective temperature, stellar luminosity, and extinction. The tool uses the NUTS (No U-Turn Sampler) implemented through PyMC3. 
 
-nuts-for-ysos was written by default for spectra from the VIRUS spectrograph at the Hobby Eberly Telescope, but can be customized for other spectra-- take note of the "input YSO spectrum requirements" section below.
+nuts-for-ysos was written by default for spectra from the VIRUS spectrograph at the Hobby Eberly Telescope, but can be customized for other spectra-- just take note of the "input YSO spectrum requirements" section below.
 
 In brief:
 The user must provide a spectrum of an accreting YSO in the UV-Optical range. Then, nuts-for-ysos fits a model to the YSO consisting of two components:
@@ -21,14 +21,17 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 
 ## input YSO spectrum requirements (WIP)
 Resolution: The input spectrum can be low or high resolution but can't be higher resolution than the template spectra! WIP; look at exact wavelength spacing for templates
+Wavelength Range:
+Ancilliary Data: You need to know the distance to the input YSO, but photometry (eg, PanSTARRS gmag, rmag, and imag) are not required.
 
 ## customizable aspects of nuts-for-ysos (WIP)
-built in:
-- If using VIRUS parallel spectra, you can choose whether or not to rescale the spectrum based off its PanSTARRS gmag
-- Resolution of template spectra
-- 
-
-- features_to_evaluate.py contains the particular spectrum features that are used in determining the best-fit model. These features can be altered from the default provided, just make sure you update the make_feature_list() function at the bottom of features_to_evaluate.py .
+- If using VIRUS parallel spectra, you can use the from_example_h5file() function and choose whether or not to rescale the spectrum based off its PanSTARRS gmag.
+- features_to_evaluate.py contains the particular spectrum features that are used in determining the best-fit model. These features can be altered from the default provided, just make sure you update the make_feature_list() function at the bottom of features_to_evaluate.py.
+- Even with the default set of features, you can choose whether or not to evaluate PanSTARRS rmag and imag as a part of the model fitting process.
+- WIP: mention how to use different photometry
+- If you have errorbars on the distance to the input YSO, those can be accounted for by the NUTS sampler, but if not, the distance can be passed as just a scalar instead.
+- By default, the Cardelli et al 1989 reddening law is used (WIP... mention where this can be changed)
+- The Rv can be changed from the default of 3.1
 
 ## useful links (WIP)
 
@@ -38,7 +41,6 @@ To-do list:
 - Finish up the notebook that puts everything together and shows how to interpret results
 - use example fits files, as the h5 files are too big
 - Write useful annotations in notebook
-- Make sure each py file isn't importing anything unnecessary
 - Write notes in README for users about:
   - What packages to install, and their versions
   - the limitations in wavelength range for this tool
