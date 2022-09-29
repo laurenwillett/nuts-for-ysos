@@ -18,6 +18,7 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 - astropy 4.2.1
 - corner 2.2.1
 - matplotlib 3.2.2
+- h5py 3.3.0
 
 ## input YSO spectrum requirements (WIP)
 Resolution: The input spectrum can be low or high resolution but can't be higher resolution than the template spectra! WIP; look at exact wavelength spacing for templates
