@@ -29,7 +29,7 @@ Ancilliary Data: You need to know the distance to the input YSO, but photometry 
 - features_to_evaluate.py contains the particular spectrum features that are used in determining the best-fit model. These features can be altered from the default provided, just make sure you update the make_feature_list() function at the bottom of features_to_evaluate.py.
 - Even with the default set of features, you can choose whether or not to evaluate PanSTARRS rmag and imag as a part of the model fitting process.
 - WIP: mention how to use different photometry
-- If you have errorbars on the distance to the input YSO, those can be accounted for by the NUTS sampler, but if not, the distance can be passed as just a scalar instead.
+- If you have errorbars on the distance to the input YSO, those can be accounted for by the NUTS sampler-- but if not, the distance can be passed as just a scalar instead.
 - By default, the Cardelli et al 1989 reddening law is used (WIP... mention where this can be changed)
 - The Rv can be changed from the default of 3.1
 
