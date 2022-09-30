@@ -23,11 +23,39 @@ def chi2_like(observed, errs, model):
         chi2 += chi2_element
     return chi2
 
-def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, YSO, Av):
+def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, YSO, Av, Rv=3.1):
     f360_YSO = np.mean(YSO[int(np.where(def_wave_data == 3568)[0][0]):int(np.where(def_wave_data == 3588)[0][0])])
     f550_YSO = np.mean(YSO[int(np.where(def_wave_data == 5090)[0][0]):int(np.where(def_wave_data == 5110)[0][0])])
-    init_slab_model_red = np.array(reddening_function_C89(def_wave_model, init_slab_model, Av))
-    init_photosphere_red = np.array(reddening_function_C89(def_wave_model, init_photosphere, Av))
+    
+    #check on reddening function, I wanted to get rid of that
+    c = 2.99792458 * (1e10)
+    wave_inv = np.arange(0.3, 3.3, .0001)
+    opacity = []
+    for x in wave_inv:
+        y = x-1.82
+        a = 1 + (0.17699*y) - (0.50447*(y**2)) - (0.02427*(y**3)) + (0.72085*(y**4)) + (0.01979*(y**5)) - (0.77530*(y**6)) + (.32999*(y**7))
+        b = (1.41338*y) + (2.28305*(y**2)) + (1.07233*(y**3)) - (5.38434*(y**4)) - (0.62251*(y**5)) + (5.30260*(y**6)) - (2.09002*(y**7))
+        z = a + (b/Rv)
+        opacity.append(z)
+    red_law_OPT = interpolate.interp1d(wave_inv, opacity)
+    opacity = []
+    for x in wave_inv:
+        a = 0.574*(x**1.61)
+        b = -0.527*(x**1.61)
+        z = a + (b/Rv)
+        opacity.append(z)
+    red_law_IR = interpolate.interp1d(wave_inv, opacity)
+    wavelength_micron = def_wave_model / 10000
+    OPTmask = [(wavelength_micron**-1) >= 1.1]
+    IRmask = [(wavelength_micron**-1) < 1.1]
+    A_specific = Av * ((red_law_OPT(1/wavelength_micron)*OPTmask) + (red_law_IR(1/wavelength_micron)*IRmask))
+    
+    #reddened_spec = (spec * (10 ** (-0.4 * A_specific)))[0]
+    init_slab_model_red = np.array((init_slab_model * (10 ** (-0.4 * A_specific)))[0])
+    init_photosphere_red = np.array((init_photosphere * (10 ** (-0.4 * A_specific)))[0])
+    #init_slab_model_red = np.array(reddening_function_C89(def_wave_model, init_slab_model, Av))
+    #init_photosphere_red = np.array(reddening_function_C89(def_wave_model, init_photosphere, Av))
+    
     f360_slab = init_slab_model_red[(np.where(def_wave_model == 3578)[0][0])]
     f550_slab = init_slab_model_red[(np.where(def_wave_model == 5100)[0][0])]
     f360_phot = np.mean(init_photosphere_red[int(np.where(def_wave_model == 3568)[0][0]):int(np.where(def_wave_model == 3588)[0][0])])
@@ -40,7 +68,7 @@ def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, Y
     return Kslab_0, Kphot_0
 
 
-def least_squares_fit_function(def_wave_data, mean_resolution, Rv, YSO, YSO_err,rmag_YSO, imag_YSO, plot):
+def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_err, Rv=3.1, rmag_YSO=False, imag_YSO=False, plot=True):
     print('performing initial least squares fit')
     template_Teffs, def_wave, templates_scaled, template_lums = prep_scale_templates(def_wave_data, mean_resolution)
     

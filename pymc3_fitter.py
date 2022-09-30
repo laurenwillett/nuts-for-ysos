@@ -32,7 +32,7 @@ def make_gamma_dist(x1, p1, x2, p2):
     return dist_space, kde(dist_space)
 
 
-def pymc3_NUTS_fitting(def_wave_data, mean_resolution, Rv, YSO, YSO_err, distance_info, rmag_YSO, imag_YSO, name, target_accept_set):
+def pymc3_NUTS_fitting(def_wave_data, mean_resolution, YSO, YSO_err, name, distance_info, target_accept_set, Rv=3.1, rmag_YSO=False, imag_YSO=False):
     
     template_Teffs, def_wave, templates_scaled, template_lums = prep_scale_templates(def_wave_data, mean_resolution)
     
@@ -61,7 +61,7 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, Rv, YSO, YSO_err, distanc
         YSO_spectrum_features = np.concatenate((YSO_spectrum_features, np.array([float(imag_YSO)])))
         YSO_spectrum_features_errs = np.concatenate((YSO_spectrum_features_errs, np.array([0.2]))) #conservative errorbars of 0.2 for photometry
     
-    best_fit_params = least_squares_fit_function(def_wave_data, mean_resolution, Rv, YSO, YSO_err, rmag_YSO, imag_YSO, plot=True)
+    best_fit_params = least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_err, Rv, rmag_YSO, imag_YSO, plot=True)
     
     print('initializing PyMC3 fitter')
     c = 2.99792458 * (1e10)

@@ -1,7 +1,7 @@
 from astropy.table import Table
 import numpy as np
 
-def from_example_fitsfile(filepath, magscale, ps_gmag_target):
+def from_example_fitsfile(filepath, magscale=False, ps_gmag_target=False):
     def_wave_UVB = np.arange(3470, 5542, 2)
     c = 2.99792458 * (1e10)     
     table = Table.read(filepath)
@@ -46,7 +46,7 @@ def from_example_fitsfile(filepath, magscale, ps_gmag_target):
     return YSO, YSO_err
 
 
-def from_example_h5file(h5filename, h5index, magscale=True): #magscale is whether or not to rescale flux based off panstarrs g mag
+def from_example_h5file(h5filename, h5index, magscale=False): #magscale is whether or not to rescale flux based off panstarrs g mag
     import h5py
     
 #for example:
