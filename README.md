@@ -22,7 +22,9 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 
 ## input YSO spectrum requirements (WIP)
 Resolution: The input spectrum can be low or high resolution but can't be higher resolution than the template spectra! WIP; look at exact wavelength spacing for templates
+
 Wavelength Range:
+
 Ancilliary Data: You need to know the distance to the input YSO, but photometry (eg, PanSTARRS gmag, rmag, and imag) are not required.
 
 ## customizable aspects of nuts-for-ysos (WIP)
