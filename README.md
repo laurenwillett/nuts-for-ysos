@@ -26,8 +26,9 @@ Resolution:
   The provided X-Shooter template spectra are typically defined every 0.2 Angstroms except for a few (SO797, SO641 and SO999) that are defined every 0.3 Angstorms. The input spectrum shouldn't be higher resolution than the template spectra-- the code was designed to make the templates lower resolution if needed, but not the other way around.
 
 Wavelength Range:
+The wavelength array cannot extend below 3300.0 Angstroms or above 10189.0 Angstroms.
 
-Ancilliary Data: You need to know the distance to the input YSO, but photometry (eg, PanSTARRS gmag, rmag, and imag) are not required.
+Ancilliary Data: You need to know the distance to the input YSO, but photometry (eg. PanSTARRS gmag, rmag, and imag) are not required.
 
 ## customizable aspects of nuts-for-ysos (WIP)
 - If using VIRUS parallel spectra, you can use the from_example_h5file() function and choose whether or not to rescale the spectrum based off its PanSTARRS gmag.
