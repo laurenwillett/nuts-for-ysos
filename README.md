@@ -36,8 +36,7 @@ Ancilliary Data: You need to know the distance to the input YSO, but photometry 
 - Even with the default set of features, you can choose whether or not to evaluate PanSTARRS rmag and imag as a part of the model fitting process.
 - WIP: mention how to use different photometry
 - If you have errorbars on the distance to the input YSO, those can be accounted for by the NUTS sampler-- but if not, the distance can be passed as just a scalar instead.
-- By default, the Cardelli et al 1989 reddening law is used (WIP... mention where this can be changed)
-- The Rv can be changed from the default of 3.1
+- The Rv can be changed from the default of 3.1 . The code uses the Cardelli et al 1989 reddening law.
 
 ## useful links (WIP)
 
