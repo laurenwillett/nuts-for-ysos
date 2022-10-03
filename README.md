@@ -21,7 +21,9 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 - h5py 3.3.0
 
 ## input YSO spectrum requirements (WIP)
-Resolution: The input spectrum can be low or high resolution but can't be higher resolution than the template spectra! WIP; look at exact wavelength spacing for templates
+Resolution: 
+  Users should therefore only use nuts-for-ysos on spectra with wavelength arrays spaced out by 0.3 Angstroms or more.
+  The provided X-Shooter template spectra are typically defined every 0.2 Angstroms except for a few (SO797, SO641 and SO999) that are defined every 0.3 Angstorms. The input spectrum shouldn't be higher resolution than the template spectra-- the code was designed to make the templates lower resolution if needed, but not the other way around.
 
 Wavelength Range:
 
