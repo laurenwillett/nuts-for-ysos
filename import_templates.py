@@ -38,8 +38,8 @@ def prep_scale_templates(def_wave_data, mean_resolution):
 
     def_wave_UVB = def_wave_data
     spacing = float(np.diff(def_wave_UVB)[0])
-    if def_wave_UVB[-1]+spacing < 10190:
-        def_wave_VIS = np.arange(def_wave_UVB[-1]+spacing, 10190, spacing)
+    if def_wave_UVB[-1]+spacing < 10189:
+        def_wave_VIS = np.arange(def_wave_UVB[-1]+spacing, 10189, spacing)
         def_wave = np.concatenate((def_wave_UVB,def_wave_VIS))
     else:
         def_wave = def_wave_UVB
@@ -129,7 +129,8 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         template_SpTs.append(SpT)
         template_lums.append(L_template_log)
         template_names.append(template_name)
-        medians.append(np.median((dist_scaled_photosphere)[int(np.where(def_wave == float(4500))[0][0]):int(np.where(def_wave == float(5500))[0][0])]))
+            #you need to do some rounding here
+        medians.append(np.median(dist_scaled_photosphere[int(np.where(np.rint(def_wave) == 4500)[0][0]):int(np.where(np.rint(def_wave) == 5500)[0][0])]))
 
     template_Teffs = np.array(template_Teffs)
     template_lums = np.array(template_lums)
@@ -146,7 +147,7 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         template_lums_new.append(L_template_log_new)
         final_medians.append(np.median((template_scaled)[515:1015]))
 
-    return [template_Teffs, def_wave, templates_scaled, template_lums_new]
+    return [template_Teffs, template_lums_new, def_wave, templates_scaled]
 
 
 

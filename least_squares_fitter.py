@@ -6,11 +6,11 @@ from astropy.table import Table
 import matplotlib.pyplot as plt
 import theano
 import theano.tensor as tt
-from reddening import reddening_function_C89
+from scipy import interpolate
+
 
 from import_templates import prep_scale_templates
-from features_to_evaluate import make_feature_list
-from features_to_evaluate import photometry_feature
+from features_to_evaluate import avg_value_feature, slope_feature, photometry_feature
 
 def chi2_like(observed, errs, model):
     chi2 = 0
@@ -24,11 +24,14 @@ def chi2_like(observed, errs, model):
     return chi2
 
 def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, YSO, Av, Rv=3.1):
-    f360_YSO = np.mean(YSO[int(np.where(def_wave_data == 3568)[0][0]):int(np.where(def_wave_data == 3588)[0][0])])
-    f550_YSO = np.mean(YSO[int(np.where(def_wave_data == 5090)[0][0]):int(np.where(def_wave_data == 5110)[0][0])])
     
-    #check on reddening function, I wanted to get rid of that
+    #set to round to nearest even number
+    f360_YSO = np.mean(YSO[int(np.where(np.rint(def_wave_data/2)*2 == 3568)[0][0]):int(np.where(np.rint(def_wave_data/2)*2 == 3588)[0][0])])
+    f550_YSO = np.mean(YSO[int(np.where(np.rint(def_wave_data/2)*2 == 5090)[0][0]):int(np.where(np.rint(def_wave_data/2)*2 == 5110)[0][0])])
+    
+    #Cardelli et al 1989 reddening law
     c = 2.99792458 * (1e10)
+    wavelength_micron = def_wave_model / 10000
     wave_inv = np.arange(0.3, 3.3, .0001)
     opacity = []
     for x in wave_inv:
@@ -45,21 +48,16 @@ def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, Y
         z = a + (b/Rv)
         opacity.append(z)
     red_law_IR = interpolate.interp1d(wave_inv, opacity)
-    wavelength_micron = def_wave_model / 10000
     OPTmask = [(wavelength_micron**-1) >= 1.1]
     IRmask = [(wavelength_micron**-1) < 1.1]
     A_specific = Av * ((red_law_OPT(1/wavelength_micron)*OPTmask) + (red_law_IR(1/wavelength_micron)*IRmask))
     
-    #reddened_spec = (spec * (10 ** (-0.4 * A_specific)))[0]
     init_slab_model_red = np.array((init_slab_model * (10 ** (-0.4 * A_specific)))[0])
     init_photosphere_red = np.array((init_photosphere * (10 ** (-0.4 * A_specific)))[0])
-    #init_slab_model_red = np.array(reddening_function_C89(def_wave_model, init_slab_model, Av))
-    #init_photosphere_red = np.array(reddening_function_C89(def_wave_model, init_photosphere, Av))
-    
-    f360_slab = init_slab_model_red[(np.where(def_wave_model == 3578)[0][0])]
-    f550_slab = init_slab_model_red[(np.where(def_wave_model == 5100)[0][0])]
-    f360_phot = np.mean(init_photosphere_red[int(np.where(def_wave_model == 3568)[0][0]):int(np.where(def_wave_model == 3588)[0][0])])
-    f550_phot = np.mean(init_photosphere_red[int(np.where(def_wave_model == 5090)[0][0]):int(np.where(def_wave_model == 5110)[0][0])])
+    f360_slab = init_slab_model_red[(np.where(np.rint(def_wave_model/2)*2 == 3578)[0][0])]
+    f550_slab = init_slab_model_red[(np.where(np.rint(def_wave_model/2)*2 == 5100)[0][0])]
+    f360_phot = np.mean(init_photosphere_red[int(np.where(np.rint(def_wave_model/2)*2 == 3568)[0][0]):int(np.where(np.rint(def_wave_model/2)*2 == 3588)[0][0])])
+    f550_phot = np.mean(init_photosphere_red[int(np.where(np.rint(def_wave_model/2)*2 == 5090)[0][0]):int(np.where(np.rint(def_wave_model/2)*2 == 5110)[0][0])])
     b = np.array([f360_YSO, f550_YSO])
     a = np.array([[f360_phot, f360_slab], [f550_phot, f550_slab]])
     X = np.linalg.solve(a,b)
@@ -68,23 +66,9 @@ def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, Y
     return Kslab_0, Kphot_0
 
 
-def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_err, Rv=3.1, rmag_YSO=False, imag_YSO=False, plot=True):
+def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, Rv=3.1, plot=True):
     print('performing initial least squares fit')
-    template_Teffs, def_wave, templates_scaled, template_lums = prep_scale_templates(def_wave_data, mean_resolution)
-    
-    #Pan-STARRS filters
-    ps2r_file = Table.read('psr_filter_curve.csv')
-    ps2r_wave=ps2r_file ['wavelength (A)']
-    ps2r_val=ps2r_file ['transmission']
-    ps2r_wave = np.array(ps2r_wave)
-    ps2r_val = np.array(ps2r_val)
-    filtr = np.interp(def_wave, ps2r_wave, ps2r_val, left=0.0, right=0.0)
-    ps2i_file = Table.read('psi_filter_curve.csv')
-    ps2i_wave=ps2i_file ['wavelength (A)']
-    ps2i_val=ps2i_file ['transmission']
-    ps2i_wave = np.array(ps2i_wave)
-    ps2i_val = np.array(ps2i_val)
-    filti = np.interp(def_wave, ps2i_wave, ps2i_val, left=0.0, right=0.0)
+    template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
     
     T = tt.scalar('T')
     n_e = tt.scalar('n_e')
@@ -230,7 +214,7 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_err, Rv=
     slab_shortened = generate_slab_out_2[(tt.eq(nu_2, nu[0])).nonzero()[0][0]:((tt.eq(nu_2, nu[-1])).nonzero()[0][0]+int(diff/wavelength_spacing_model)):int(diff/wavelength_spacing_model)]
     generate_slab = theano.function([T, n_e, tau_0], slab_shortened)
     
-    #Cardelli et al 1989 reddening law
+    #Cardelli et al 1989 reddening law (theano version)
     wavelength_micron = def_wave / 10000
     wave_inv = (wavelength_micron**-1)
     x_OPT = wave_inv-1.82
@@ -248,18 +232,6 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_err, Rv=
     model = reddened_slab*Kslab + reddened_photosphere*Kphot
     generate_model = theano.function([T, n_e, tau_0, Kslab, Kphot, Av, photosphere], [reddened_slab*Kslab, reddened_photosphere*Kphot, model])
     
-    YSO_spectrum_features = np.array(make_feature_list(def_wave_data, YSO, err=YSO_err)[0])
-    YSO_spectrum_features_errs = np.array(make_feature_list(def_wave_data, YSO, err=YSO_err)[1])
-    if isinstance(rmag_YSO, float) == True or isinstance(rmag_YSO, int) == True:
-        YSO_spectrum_features = np.concatenate((YSO_spectrum_features, np.array([float(rmag_YSO)])))
-        YSO_spectrum_features_errs = np.concatenate((YSO_spectrum_features_errs, np.array([0.2]))) #conservative errorbars of 0.2 for photometry
-    if isinstance(imag_YSO, float) == True or isinstance(imag_YSO, int) == True:
-        YSO_spectrum_features = np.concatenate((YSO_spectrum_features, np.array([float(imag_YSO)])))
-        YSO_spectrum_features_errs = np.concatenate((YSO_spectrum_features_errs, np.array([0.2]))) #conservative errorbars of 0.2 for photometry
-        
-    f360_YSO = np.mean(YSO[int(np.where(def_wave_data == 3568)[0][0]):int(np.where(def_wave_data == 3588)[0][0])])
-    f550_YSO = np.mean(YSO[int(np.where(def_wave_data == 5090)[0][0]):int(np.where(def_wave_data == 5110)[0][0])])
-    
     x0 = [7000.0, 1e13, 1, 'Kslab', 'Kphot', 0.0]
     init_slab_model = np.array(generate_slab(x0[0], x0[1], x0[2]))
     ftol_mine = 1e-04
@@ -272,11 +244,17 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_err, Rv=
     
     def residuals(model_params):
         model = generate_model(model_params[0], model_params[1], model_params[2], model_params[3], model_params[4], model_params[5], init_photosphere)[2]
-        model_features = np.array(make_feature_list(def_wave, model, err=False))
-        if isinstance(rmag_YSO, float) == True or isinstance(rmag_YSO, int) == True:
-            model_features = np.concatenate((model_features, np.array([photometry_feature(def_wave, model, filtr)]))) #add in photometry
-        if isinstance(imag_YSO, float) == True or isinstance(imag_YSO, int) == True:
-            model_features = np.concatenate((model_features, np.array([photometry_feature(def_wave, model, filti)]))) #add in photometry
+        #model_features = np.array(make_feature_list(def_wave, model, err=False))
+        model_features = []
+        for f in range(0, len(feature_types)):
+            if feature_types[f] == 'value':
+                model_features.append(avg_value_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], model))
+            if feature_types[f] == 'slope':
+                model_features.append(slope_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], feature_bounds[f][2], feature_bounds[f][3], model))
+            if feature_types[f] == 'photometry':
+                model_features.append(photometry_feature(def_wave, feature_bounds[f], model))
+        model_features = np.array(model_features)
+                
         residual = (YSO_spectrum_features - model_features) / YSO_spectrum_features_errs
         return residual
     
@@ -306,11 +284,16 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_err, Rv=
             params_saved.append([model_params_results[0], model_params_results[1], model_params_results[2], model_params_results[3], model_params_results[4], model_params_results[5], init_Teff])
             good_photosphere = init_photosphere
             good_model = generate_model(model_params_results[0], model_params_results[1], model_params_results[2], model_params_results[3], model_params_results[4], model_params_results[5], good_photosphere)[2]
-            good_model_features =  np.array(make_feature_list(def_wave, good_model, err=False))
-            if isinstance(rmag_YSO, float) == True or isinstance(rmag_YSO, int) == True:
-                good_model_features = np.concatenate((good_model_features, np.array([photometry_feature(def_wave, good_model, filtr)])))
-            if isinstance(imag_YSO, float) == True or isinstance(imag_YSO, int) == True:
-                good_model_features = np.concatenate((good_model_features, np.array([photometry_feature(def_wave, good_model, filti)])))
+            #good_model_features =  np.array(make_feature_list(def_wave, good_model, err=False))
+            good_model_features = []
+            for f in range(0, len(feature_types)):
+                if feature_types[f] == 'value':
+                    good_model_features.append(avg_value_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], good_model))
+                if feature_types[f] == 'slope':
+                    good_model_features.append(slope_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], feature_bounds[f][2], feature_bounds[f][3], good_model))
+                if feature_types[f] == 'photometry':
+                    good_model_features.append(photometry_feature(def_wave, feature_bounds[f], good_model))
+            good_model_features = np.array(good_model_features)
             chisq = chi2_like(YSO_spectrum_features, YSO_spectrum_features_errs, good_model_features)
             chi_squares.append(chisq)
             fit_photospheres.append(init_photosphere)
