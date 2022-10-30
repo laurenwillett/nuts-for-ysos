@@ -15,6 +15,7 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 - numpy 1.18.1
 - theano 1.0.5
 - pymc3 3.9.3
+- scipy 1.5.3
 - astropy 4.2.1
 - corner 2.2.1
 - matplotlib 3.2.2
