@@ -45,7 +45,7 @@ Ancilliary Data: You need to know the distance to the input YSO, but photometric
 
 To-do list:
 -TEST EVERYTHING AGAIN!!
-- update package versions
+- update package versions; update to PyMC 4.0 and see how it goes
 - Finish up the notebook that puts everything together and shows how to interpret results
 - I could make import_templates.py do less unit conversions
 - Write notes in README for users about:
