@@ -10,7 +10,7 @@ from scipy import interpolate
 
 
 from import_templates import prep_scale_templates
-from features_to_evaluate import avg_value_feature, slope_feature, photometry_feature
+from features_to_evaluate import avg_point_feature, slope_feature, photometry_feature
 
 def chi2_like(observed, errs, model):
     chi2 = 0
@@ -25,7 +25,7 @@ def chi2_like(observed, errs, model):
 
 def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, YSO, Av, Rv=3.1):
     
-    #set to round to nearest even number
+    #rounds to nearest even number in the wavelength array
     f360_YSO = np.mean(YSO[int(np.where(np.rint(def_wave_data/2)*2 == 3568)[0][0]):int(np.where(np.rint(def_wave_data/2)*2 == 3588)[0][0])])
     f550_YSO = np.mean(YSO[int(np.where(np.rint(def_wave_data/2)*2 == 5090)[0][0]):int(np.where(np.rint(def_wave_data/2)*2 == 5110)[0][0])])
     
@@ -244,11 +244,10 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     
     def residuals(model_params):
         model = generate_model(model_params[0], model_params[1], model_params[2], model_params[3], model_params[4], model_params[5], init_photosphere)[2]
-        #model_features = np.array(make_feature_list(def_wave, model, err=False))
         model_features = []
         for f in range(0, len(feature_types)):
-            if feature_types[f] == 'value':
-                model_features.append(avg_value_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], model))
+            if feature_types[f] == 'point':
+                model_features.append(avg_point_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], model))
             if feature_types[f] == 'slope':
                 model_features.append(slope_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], feature_bounds[f][2], feature_bounds[f][3], model))
             if feature_types[f] == 'photometry':
@@ -266,7 +265,7 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
         Kslab_0, Kphot_0 = K_solver(def_wave, init_slab_model, init_photosphere, def_wave_data, YSO, 0)
         Kphot_upper = 1000
         Kphot_lower = 0
-        #make a procedure for if an initial guess w/ Av=0 is infeasible
+        #make a procedure for if an initial guess with Av=0 is infeasible
         Av_try = 0
         while Kphot_0>Kphot_upper or Kphot_0<Kphot_lower or Kslab_0 <0:
             Av_try += 1
@@ -284,11 +283,10 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
             params_saved.append([model_params_results[0], model_params_results[1], model_params_results[2], model_params_results[3], model_params_results[4], model_params_results[5], init_Teff])
             good_photosphere = init_photosphere
             good_model = generate_model(model_params_results[0], model_params_results[1], model_params_results[2], model_params_results[3], model_params_results[4], model_params_results[5], good_photosphere)[2]
-            #good_model_features =  np.array(make_feature_list(def_wave, good_model, err=False))
             good_model_features = []
             for f in range(0, len(feature_types)):
-                if feature_types[f] == 'value':
-                    good_model_features.append(avg_value_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], good_model))
+                if feature_types[f] == 'point':
+                    good_model_features.append(avg_point_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], good_model))
                 if feature_types[f] == 'slope':
                     good_model_features.append(slope_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], feature_bounds[f][2], feature_bounds[f][3], good_model))
                 if feature_types[f] == 'photometry':

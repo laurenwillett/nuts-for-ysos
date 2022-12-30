@@ -7,8 +7,8 @@ from astropy.convolution import Gaussian1DKernel
 from astropy.convolution import convolve
 
 def prep_scale_templates(def_wave_data, mean_resolution):
-    #for M dwarfs beyond M0 the Teff scale is from: https://ui.adsabs.harvard.edu/abs/2003ApJ...593.1093L/abstract
-    #for M0, as well as G and K stars: table A5 of https://ui.adsabs.harvard.edu/abs/1995ApJS..101..117K/abstract
+    #for M dwarfs beyond M0 the SpT-->Teff scale is from Luhman et al. 2003: https://ui.adsabs.harvard.edu/abs/2003ApJ...593.1093L/abstract
+    #for M0, as well as G and K stars: table A5 of Kenyon and Hartmann 1995: https://ui.adsabs.harvard.edu/abs/1995ApJS..101..117K/abstract
 
     M_SpTs = [0,1,2,3,4,5,6,7,8,9,9.5]
     M_Teffs = [3850,3705, 3560, 3415, 3270, 3125, 2990, 2880, 2710, 2400, 2330]
@@ -44,7 +44,7 @@ def prep_scale_templates(def_wave_data, mean_resolution):
     else:
         def_wave = def_wave_UVB
 
-    #for making templates match data resolution
+    #for making templates match the resolution of the user-inputted spectrum
     def gauss(w, sigma, mu):
         var = sigma**2
         exp = (-((w-mu)**2)/(2*var)) 
@@ -119,7 +119,7 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         convolved_flux_template_total = convolve((flux_template_total), gauss, boundary='extend')
         interp_template_total = np.interp(def_wave, wave_template_total, convolved_flux_template_total, left=0.0, right=0.0)
         
-        og_photosphere = interp_template_total* 1e17 # 10^-17 ergs/s/cm^2/A
+        og_photosphere = interp_template_total* 1e17 # units of 10^-17 ergs/s/cm^2/A
         dist_scaled_photosphere = og_photosphere*(d_template**2)
         temperature = float(get_temperature(SpT))
         L_template_log = template_table['log_L__'][t]
@@ -129,7 +129,6 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         template_SpTs.append(SpT)
         template_lums.append(L_template_log)
         template_names.append(template_name)
-            #you need to do some rounding here
         medians.append(np.median(dist_scaled_photosphere[int(np.where(np.rint(def_wave) == 4500)[0][0]):int(np.where(np.rint(def_wave) == 5500)[0][0])]))
 
     template_Teffs = np.array(template_Teffs)

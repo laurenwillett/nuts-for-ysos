@@ -1,10 +1,10 @@
 import numpy as np
 
-def avg_value_feature(wave, left_end, right_end, spectrum):
+def avg_point_feature(wave, left_end, right_end, spectrum):
     value = np.mean(spectrum[int(np.where(wave == float(left_end))[0][0]):int(np.where(wave == float(right_end))[0][0])])
     return value
 
-def avg_value_feature_err(wave, left_end, right_end, spectrum, err):
+def avg_point_feature_err(wave, left_end, right_end, spectrum, err):
     value_err = 0
     avg_err_range = (err[int(np.where(wave == float(left_end))[0][0]):int(np.where(wave == float(right_end))[0][0])])
     for element in avg_err_range:

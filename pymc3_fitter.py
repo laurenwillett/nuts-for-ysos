@@ -9,11 +9,8 @@ import scipy.stats as stats
 from scipy.stats.kde import gaussian_kde
 
 from import_templates import prep_scale_templates
-#from features_to_evaluate import make_feature_list
-#from features_to_evaluate import photometry_feature
-#from least_squares_fitter import least_squares_fit_function
 
-def make_gamma_dist(x1, p1, x2, p2):
+def make_gamma_dist(x1, p1, x2, p2): #p1 and p2 are percentiles (eg. 16 and 84) with respective values x1 and x2
     # Standardize so that x1 < x2 and p1 < p2
     if p1 > p2:
         (p1, p2) = (p2, p1)
@@ -32,7 +29,7 @@ def make_gamma_dist(x1, p1, x2, p2):
     return dist_space, kde(dist_space)
 
 
-def pymc3_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, name, init_params, target_accept_set, Rv=3.1):
+def pymc3_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, name, init_params, target_accept_set, length, chains, cores, Rv=3.1):
     
     template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
     
@@ -75,10 +72,10 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YS
     Ens_ff_2 = [0, -1341.5370, 5303.6090, -7510.4940, 4400.0670, -901.7880]
     Fns_ff_2 = [0, 208.9520, -812.9390, 1132.7380, -655.0200, 132.9850]
 
-    Cns_fb = [152.519, 49.534, -118.858, 92.536, -34.194, 4.982] #valid from 0.125 to 1.6419 um
+    Cns_fb = [152.519, 49.534, -118.858, 92.536, -34.194, 4.982] #valid from 0.125 to 1.6419 um (the photodetachment threshold)
 
     with pm.Model() as model1:
-        #Set Priors
+        #setting priors:
         T = pm.Uniform('T', 5000, 15000)
         n_e_log = pm.Uniform('n_e_log', 10, 16)
         n_e = 10**(n_e_log)
@@ -95,7 +92,7 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YS
         BoundedNormal_2 = pm.Bound(pm.Normal, lower=-0.5, upper=0.5)
         Lum_grid_uncert = BoundedNormal_2('Lum_grid_uncert', mu=0, sigma=0.2, shape=(len(template_lums)))
         
-        #whether or not to make distance a prior or just a scalar
+        #whether or not to make distance a prior or just a scalar depends on what information you have
         if isinstance(distance_info, np.ndarray) == True or isinstance(distance_info, list) == True:
             d_target, d_l_target, d_u_target = distance_info #parsecs
             d_dist = make_gamma_dist(d_l_target, 0.16, d_u_target, 0.84)
@@ -130,6 +127,7 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YS
         B_out_2 = 2*h*(nu_2**3)*(1/((tt.exp((h*nu_2)/(k_B*T)))-1))/(c**2)
         coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
         m_2 = tt.floor((nu_0*(Z_i**2)/nu_2)**(1/2)+1)
+        #get rid of repetitive calculations here?
         frac1_2 = tt.switch(tt.eq(m_2, 1.0), (nu_2/(nu_0 * (Z_i**2))), 0)
         frac1_2 = frac1_2[frac1_2.nonzero()]
         frac2_2 = tt.switch(tt.eq(m_2, 2.0), (nu_2/(nu_0 * (Z_i**2))), 0)
@@ -148,6 +146,8 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YS
         y4_2 = tt.zeros(frac4_2.shape)
         y5_2 = tt.zeros(frac5_2.shape)
         y6_2 = tt.zeros(frac6_2.shape)
+        #I wonder if there is a way to make this neater/quicker
+        #maybe avoid calculating the repeated bits over and over
         for n in range(1, 20):
             gn = 1 + (0.1728*(frac1_2**(1/3) - (2*(frac1_2**(-2/3))/(n**2)))) - .0496*(frac1_2**(2/3) - (2*(frac1_2**(-1/3))/((3*(n**2)))) + (2*(frac1_2**(-4/3))/((3*(n**4)))))
             exp = (h*nu_0) / ((n**2)*k_B*T)
@@ -242,28 +242,10 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YS
         model = reddened_slab*Kslab + reddened_photosphere*Kphot
         y = model
         
-        #balmer_slope_out = (tt.mean(y[(tt.eq(def_wave, 3580.0).nonzero()[0][0]):(tt.eq(def_wave, 3600.0).nonzero()[0][0])])) - (tt.mean(y[(tt.eq(def_wave, 3504.0).nonzero()[0][0]):(tt.eq(def_wave, 3524.0).nonzero()[0][0])]))
-        #paschen_slope_out = (tt.mean(y[(tt.eq(def_wave, 4770.0).nonzero()[0][0]):(tt.eq(def_wave, 4820.0).nonzero()[0][0])])) - (tt.mean(y[(tt.eq(def_wave, 3980.0).nonzero()[0][0]):(tt.eq(def_wave, 4020.0).nonzero()[0][0])]))
-        #balmer_val_out = (tt.mean(y[(tt.eq(def_wave, 3520.0).nonzero()[0][0]):(tt.eq(def_wave, 3580.0).nonzero()[0][0])]))
-        #balmer_val_2_out = (tt.mean(y[(tt.eq(def_wave, 3850.0).nonzero()[0][0]):(tt.eq(def_wave, 3870.0).nonzero()[0][0])]))
-        #purple_val_out = (tt.mean(y[(tt.eq(def_wave, 4000.0).nonzero()[0][0]):(tt.eq(def_wave, 4030.0).nonzero()[0][0])]))
-        #paschen_val_out = (tt.mean(y[(tt.eq(def_wave, 4590.0).nonzero()[0][0]):(tt.eq(def_wave, 4624.0).nonzero()[0][0])]))
-        #optical_val_2_out = (tt.mean(y[(tt.eq(def_wave, 5460.0).nonzero()[0][0]):(tt.eq(def_wave, 5490.0).nonzero()[0][0])]))
-        #optical_slope_2_out = (tt.mean(y[(tt.eq(def_wave, 5390.0).nonzero()[0][0]):(tt.eq(def_wave, 5424.0).nonzero()[0][0])])) - (tt.mean(y[(tt.eq(def_wave, 5060.0).nonzero()[0][0]):(tt.eq(def_wave, 5100.0).nonzero()[0][0])]))
-        #optical_val_out = (tt.mean(y[(tt.eq(def_wave, 5090.0).nonzero()[0][0]):(tt.eq(def_wave, 5130.0).nonzero()[0][0])]))
-        
-        #temp_spectrum = 1e-17 *model * 1e29 * (def_wave**2) / (c*(10**8)) #units conversion
-        #dnu = tt.extra_ops.diff(nu)
-        #dnu = tt.concatenate([tt.stack(dnu[0]), dnu])
-        #rmag = tt.dot((nu/dnu*temp_spectrum), filtr) / tt.sum((nu/dnu*filtr))
-        #RMag = -2.5 * tt.log10(rmag) + 23.9
-        #imag = tt.dot((nu/dnu*temp_spectrum), filti) / tt.sum((nu/dnu*filti))
-        #IMag = -2.5 * tt.log10(imag) + 23.9
-        
         number_of_features = len(YSO_spectrum_features)
         model_spec_features = tt.zeros(number_of_features)
         for f in range(0, len(feature_types)):
-            if feature_types[f] == 'value':
+            if feature_types[f] == 'point':
                 model_spec_features = tt.set_subtensor(model_spec_features[f], (tt.mean(y[(tt.eq(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][1]).nonzero()[0][0])])))
             if feature_types[f] == 'slope':
                 model_spec_features = tt.set_subtensor(model_spec_features[f],(tt.mean(y[(tt.eq(def_wave, feature_bounds[f][2]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][3]).nonzero()[0][0])])) - (tt.mean(y[(tt.eq(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][1]).nonzero()[0][0])])))
@@ -274,20 +256,7 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YS
                 mag = tt.dot((nu/dnu*temp_spectrum), feature_bounds[f]) / tt.sum((nu/dnu*feature_bounds[f]))
                 Mag = -2.5 * tt.log10(mag) + 23.9
                 model_spec_features = tt.set_subtensor(model_spec_features[f], Mag)
-        model_spec_features_traced = pm.Deterministic('model_spec_features_traced', model_spec_features) 
-        
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features[0], balmer_slope_out)
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features_2[1], balmer_val_out)
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features_2[2], balmer_val_2_out)
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features_2[3], purple_val_out)
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features_2[4], paschen_slope_out)
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features_2[5], paschen_val_out)
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features_2[6], optical_val_out)
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features_2[7], optical_val_2_out)
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features_2[8], optical_slope_2_out)
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features_2[9], RMag)
-        #model_spec_features_2 = tt.set_subtensor(model_spec_features_2[10], IMag)
-        #model_spec_features_traced = pm.Deterministic('model_spec_features_traced', model_spec_features_2)
+        model_spec_features_traced = pm.Deterministic('model_spec_features_traced', model_spec_features)
         
         integral = tt.sum(generate_slab_out_2*wavelength_spacing_model*Kslab/(1e17)) * 4*math.pi*((distance* 3.08567775815 * (10**18))**2)
         Lacc_log_current = tt.log10(integral/Lsun)
@@ -297,8 +266,9 @@ def pymc3_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YS
         L_log_traced = pm.Deterministic('L_log_traced',L_log_current)
         
         observation = pm.Normal('observation', mu=model_spec_features, sigma=YSO_spectrum_features_errs, observed = YSO_spectrum_features)
-        #observation = pm.Normal('observation', mu=model_spec_features_2, sigma=YSO_spectrum_features_errs, observed = YSO_spectrum_features)
-        trace0 = pm.sample(2000, chains = 16, cores = 16, target_accept = target_accept_set, start = {'T': init_params[0], 'n_e_log': np.log10(init_params[1]), 'tau_0': init_params[2], 'Kslab_1e6': init_params[3]*1e6, 'Kphot_1e6': init_params[4]*1e6, 'Av': init_params[5], 'Teff': init_params[6], 'distance': d_target})
+        trace0 = pm.sample(length, chains = chains, cores = cores, target_accept = target_accept_set, start = {'T': init_params[0], 'n_e_log': np.log10(init_params[1]), 'tau_0': init_params[2], 'Kslab_1e6': init_params[3]*1e6, 'Kphot_1e6': init_params[4]*1e6, 'Av': init_params[5], 'Teff': init_params[6], 'distance': d_target})
     with open(str(name)+'.pkl', 'wb') as buff:
         pickle.dump(trace0, buff)
+        
+    return trace0
 
