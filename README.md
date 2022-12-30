@@ -45,6 +45,7 @@ Ancilliary Data: You need to know the distance to the input YSO, but photometric
 
 To-do list:
 -TEST EVERYTHING AGAIN!!
+- update package versions
 - Finish up the notebook that puts everything together and shows how to interpret results
 - use example fits files, as the h5 files are too big
 - include additional normalization for VIRUS spectra
