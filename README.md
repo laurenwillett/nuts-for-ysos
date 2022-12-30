@@ -29,7 +29,7 @@ Resolution:
 Wavelength Range:
 The wavelength array cannot extend below 3300.0 Angstroms or above 10189.0 Angstroms.
 
-Ancilliary Data: You need to know the distance to the input YSO, but photometry (eg. PanSTARRS gmag, rmag, and imag) are not required.
+Ancilliary Data: You need to know the distance to the input YSO, but photometric measurements (eg. PanSTARRS gmag, rmag, and imag) are not required.
 
 ## customizable aspects of nuts-for-ysos (WIP)
 - If using VIRUS parallel spectra, you can use the from_example_h5file() function and choose whether or not to rescale the spectrum based off its PanSTARRS gmag.
@@ -44,8 +44,10 @@ Ancilliary Data: You need to know the distance to the input YSO, but photometry 
 # go nuts!
 
 To-do list:
+-TEST EVERYTHING AGAIN!!
 - Finish up the notebook that puts everything together and shows how to interpret results
 - use example fits files, as the h5 files are too big
+- include additional normalization for VIRUS spectra
 - Write useful annotations in notebook
 - Write notes in README for users about:
   - What packages to install, and their versions
