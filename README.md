@@ -47,8 +47,7 @@ To-do list:
 -TEST EVERYTHING AGAIN!!
 - update package versions
 - Finish up the notebook that puts everything together and shows how to interpret results
-- use example fits files, as the h5 files are too big
-- include additional normalization for VIRUS spectra
+- I could make import_templates.py do less unit conversions
 - Write useful annotations in notebook
 - Write notes in README for users about:
   - What packages to install, and their versions
