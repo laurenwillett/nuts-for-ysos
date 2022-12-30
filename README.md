@@ -48,7 +48,6 @@ To-do list:
 - update package versions
 - Finish up the notebook that puts everything together and shows how to interpret results
 - I could make import_templates.py do less unit conversions
-- Write useful annotations in notebook
 - Write notes in README for users about:
   - What packages to install, and their versions
   - the limitations in wavelength range for this tool
