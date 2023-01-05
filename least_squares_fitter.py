@@ -4,10 +4,10 @@ import numpy as np
 import math
 from astropy.table import Table
 import matplotlib.pyplot as plt
-import theano
-import theano.tensor as tt
-from scipy import interpolate
+import pytensor
+import pytensor.tensor as tt
 
+from scipy import interpolate
 
 from import_templates import prep_scale_templates
 from features_to_evaluate import avg_point_feature, slope_feature, photometry_feature
@@ -24,10 +24,6 @@ def chi2_like(observed, errs, model):
     return chi2
 
 def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, YSO, Av, Rv=3.1):
-    
-    #rounds to nearest even number in the wavelength array
-    f360_YSO = np.mean(YSO[int(np.where(np.rint(def_wave_data/2)*2 == 3568)[0][0]):int(np.where(np.rint(def_wave_data/2)*2 == 3588)[0][0])])
-    f550_YSO = np.mean(YSO[int(np.where(np.rint(def_wave_data/2)*2 == 5090)[0][0]):int(np.where(np.rint(def_wave_data/2)*2 == 5110)[0][0])])
     
     #Cardelli et al 1989 reddening law
     c = 2.99792458 * (1e10)
@@ -54,12 +50,17 @@ def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, Y
     
     init_slab_model_red = np.array((init_slab_model * (10 ** (-0.4 * A_specific)))[0])
     init_photosphere_red = np.array((init_photosphere * (10 ** (-0.4 * A_specific)))[0])
-    f360_slab = init_slab_model_red[(np.where(np.rint(def_wave_model/2)*2 == 3578)[0][0])]
-    f550_slab = init_slab_model_red[(np.where(np.rint(def_wave_model/2)*2 == 5100)[0][0])]
-    f360_phot = np.mean(init_photosphere_red[int(np.where(np.rint(def_wave_model/2)*2 == 3568)[0][0]):int(np.where(np.rint(def_wave_model/2)*2 == 3588)[0][0])])
-    f550_phot = np.mean(init_photosphere_red[int(np.where(np.rint(def_wave_model/2)*2 == 5090)[0][0]):int(np.where(np.rint(def_wave_model/2)*2 == 5110)[0][0])])
-    b = np.array([f360_YSO, f550_YSO])
-    a = np.array([[f360_phot, f360_slab], [f550_phot, f550_slab]])
+
+    #rounds to nearest number in the wavelength array
+    f360_YSO = (np.mean(YSO[int(np.where((def_wave_model-3568)==np.min(np.abs(def_wave_model-3568)))[0][0]):int(np.where((def_wave_model-3588)==np.min(np.abs(def_wave_model-3588)))[0][0])]))
+    f510_YSO = (np.mean(YSO[int(np.where((def_wave_model-5090)==np.min(np.abs(def_wave_model-5090)))[0][0]):int(np.where((def_wave_model-5110)==np.min(np.abs(def_wave_model-5110)))[0][0])]))
+    f360_slab = init_slab_model_red[np.where((def_wave_model-3578)==np.min(np.abs(def_wave_model-3578)))[0][0]]
+    f510_slab = init_slab_model_red[np.where((def_wave_model-5100)==np.min(np.abs(def_wave_model-5100)))[0][0]]
+    f360_phot = (np.mean(init_photosphere_red[int(np.where((def_wave_model-3568)==np.min(np.abs(def_wave_model-3568)))[0][0]):int(np.where((def_wave_model-3588)==np.min(np.abs(def_wave_model-3588)))[0][0])]))
+    f510_phot = (np.mean(init_photosphere_red[int(np.where((def_wave_model-5090)==np.min(np.abs(def_wave_model-5090)))[0][0]):int(np.where((def_wave_model-5110)==np.min(np.abs(def_wave_model-5110)))[0][0])]))
+    
+    b = np.array([f360_YSO, f510_YSO])
+    a = np.array([[f360_phot, f360_slab], [f510_phot, f510_slab]])
     X = np.linalg.solve(a,b)
     Kphot_0 = X[0]
     Kslab_0 = X[1]
@@ -95,7 +96,7 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     nu = c*(1e8) / def_wave
     diff = def_wave[1]-def_wave[0]
     wavelength_spacing_model = diff
-    full_wave = wavelength_spacing_model * np.arange(500/wavelength_spacing_model, 25000/wavelength_spacing_model)
+    full_wave = wavelength_spacing_model*np.arange((def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-500)//wavelength_spacing_model)),(def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-25000)//wavelength_spacing_model)))
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
 
@@ -177,11 +178,12 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     Lslab_out = tau_0 * B_Lslab_out / j_Lslab_out
     tau_H_out_2 = j_out_2 * Lslab_out / B_out_2 
     lamb_2 = (c/nu_2) *(1e4)
+    lamb_2_alt = tt.switch(lamb_2 < lamb_0, lamb_2, lamb_0)
     f_out_2 = tt.zeros(len(nu_2))
     for n in range(0,6):
         Cn = Cns_fb[n]
-        f_out_2+= tt.switch(lamb_2 < lamb_0, Cn * ((1/lamb_2) - (1/lamb_0))**((n)/2),0)
-    sigma_out_2 = tt.switch(lamb_2 < lamb_0, (1e-18)*(lamb_2**3)*(((1/lamb_2) - (1/lamb_0))**(3/2))*(f_out_2),0)
+        f_out_2+= tt.switch(lamb_2 < lamb_0, Cn * ((1/lamb_2_alt) - (1/lamb_0))**((n)/2),0)
+    sigma_out_2 = tt.switch(lamb_2 < lamb_0, (1e-18)*(lamb_2_alt**3)*(((1/lamb_2_alt) - (1/lamb_0))**(3/2))*(f_out_2),0)
     k_fb__out_2 = 0.750*(T**(-5/2))*(tt.exp(alpha/(lamb_0*T))) * (1-(tt.exp(-alpha/(lamb_2*T)))) * sigma_out_2
     lamb1_2 = tt.switch((lamb_2 <= 0.182), lamb_2, 0)
     lamb1_2 = lamb1_2[lamb1_2.nonzero()]  
@@ -212,9 +214,9 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
 
     generate_slab_out_2 = (c*I_both_out_2/((wave_cm_2)**2)) * (1e-8)
     slab_shortened = generate_slab_out_2[(tt.eq(nu_2, nu[0])).nonzero()[0][0]:((tt.eq(nu_2, nu[-1])).nonzero()[0][0]+int(diff/wavelength_spacing_model)):int(diff/wavelength_spacing_model)]
-    generate_slab = theano.function([T, n_e, tau_0], slab_shortened)
+    generate_slab = pytensor.function([T, n_e, tau_0], slab_shortened)
     
-    #Cardelli et al 1989 reddening law (theano version)
+    #Cardelli et al 1989 reddening law (pytensor version)
     wavelength_micron = def_wave / 10000
     wave_inv = (wavelength_micron**-1)
     x_OPT = wave_inv-1.82
@@ -230,7 +232,7 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     reddened_slab = (slab_shortened * (10 ** (-0.4 * A_specific)))
     reddened_photosphere = (photosphere * (10 ** (-0.4 * A_specific)))
     model = reddened_slab*Kslab + reddened_photosphere*Kphot
-    generate_model = theano.function([T, n_e, tau_0, Kslab, Kphot, Av, photosphere], [reddened_slab*Kslab, reddened_photosphere*Kphot, model])
+    generate_model = pytensor.function([T, n_e, tau_0, Kslab, Kphot, Av, photosphere], [reddened_slab*Kslab, reddened_photosphere*Kphot, model])
     
     x0 = [7000.0, 1e13, 1, 'Kslab', 'Kphot', 0.0]
     init_slab_model = np.array(generate_slab(x0[0], x0[1], x0[2]))

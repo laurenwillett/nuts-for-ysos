@@ -129,12 +129,11 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         template_SpTs.append(SpT)
         template_lums.append(L_template_log)
         template_names.append(template_name)
-        medians.append(np.median(dist_scaled_photosphere[int(np.where(np.rint(def_wave) == 4500)[0][0]):int(np.where(np.rint(def_wave) == 5500)[0][0])]))
+        medians.append(np.median(dist_scaled_photosphere[int(np.where((def_wave_data-4500)==np.min(np.abs(def_wave_data-4500)))[0][0]):int(np.where((def_wave_data-5500)==np.min(np.abs(def_wave_data-5500)))[0][0])]))
 
     template_Teffs = np.array(template_Teffs)
     template_lums = np.array(template_lums)
 
-    final_medians = []
     template_lums_new = []
     for t in range(0, len(template_Teffs)):
         SpT = template_SpTs[t]
@@ -144,7 +143,6 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         templates_scaled.append(template_scaled)
         L_template_log_new = np.log10((10**(template_lums[t]))*factor)
         template_lums_new.append(L_template_log_new)
-        final_medians.append(np.median((template_scaled)[515:1015]))
 
     return [template_Teffs, template_lums_new, def_wave, templates_scaled]
 
