@@ -1,8 +1,7 @@
 from astropy.table import Table
 import numpy as np
 
-#i wonder if the chromatic_err bit is worth having
-def from_example_h5file(h5filename, h5index, chromatic_err = False, magscale=False, extra_normalize=False):
+def from_example_h5file(h5filename, h5index, magscale=False):
     #for example:
     #h5filename = '20190101_0000021.h5'
     #h5index=52
@@ -15,18 +14,11 @@ def from_example_h5file(h5filename, h5index, chromatic_err = False, magscale=Fal
 
     f = h5py.File('example_VIRUS_h5_files/'+h5filename, 'r')
 
-    if extra_normalize==True:
-        T = Table.read('/storage/home/lhw5050/YSO_project/normalization.txt', 
-               format='ascii.fixed_width_two_line')
-        flux_normalization = np.array(T['normalization'])
-        spectrum = f['CatSpectra']['spectrum'][h5index]*1e-17*flux_normalization #erg/s/cm2
-        weight = f['CatSpectra']['weight'][h5index]
-        error = f['CatSpectra']['error'][h5index]*1e-17*flux_normalization
-    else:
-        spectrum = f['CatSpectra']['spectrum'][h5index]*1e-17 #erg/s/cm2
-        weight = f['CatSpectra']['weight'][h5index]
-        error = f['CatSpectra']['error'][h5index]*1e-17
-        
+    T = Table.read('/storage/home/lhw5050/YSO_project/normalization.txt', format='ascii.fixed_width_two_line')
+    flux_normalization = np.array(T['normalization'])
+    spectrum = f['CatSpectra']['spectrum'][h5index]*1e-17*flux_normalization #erg/s/cm2
+    weight = f['CatSpectra']['weight'][h5index]
+    error = f['CatSpectra']['error'][h5index]*1e-17*flux_normalization
     ps_gmag_target = f['CatSpectra']['gmag'][h5index]
     
     ps2g_file = Table.read('psg_filter_curve.csv')
@@ -53,17 +45,11 @@ def from_example_h5file(h5filename, h5index, chromatic_err = False, magscale=Fal
         magscaling_target_err = abs(magscaling_target*2.303*(-0.4*target_GMag_err))
         #low weights removal and interpolate over them
         YSO_pieces = (spectrum*magscaling_target)[gmask]
-        if chromatic_err == True:
-            YSO_err_pieces = YSO_pieces*(((((error+ 0.1*(spectrum))/spectrum)**2 + (magscaling_target_err/magscaling_target)**2)**(1/2))[gmask])
-        else:
-            YSO_err_pieces = YSO_pieces*((((error/spectrum)**2 + (magscaling_target_err/magscaling_target)**2)**(1/2))[gmask])
+        YSO_err_pieces = YSO_pieces*((((error/spectrum)**2 + (magscaling_target_err/magscaling_target)**2)**(1/2))[gmask])
     
     elif magscale == False:
         YSO_pieces = (spectrum)[gmask]
-        if chromatic_err == True:
-            YSO_err_pieces = YSO_pieces*(((((error+ 0.1*(spectrum))/spectrum)**2)**(1/2))[gmask])
-        else:
-            YSO_err_pieces = YSO_pieces*((((error/spectrum)**2)**(1/2))[gmask])
+        YSO_err_pieces = YSO_pieces*((((error/spectrum)**2)**(1/2))[gmask])
         
     #final YSO spectrum
     YSO = np.interp(def_wave_UVB, def_wave_UVB[gmask], YSO_pieces, left=0.0, right=0.0) * 1e17
