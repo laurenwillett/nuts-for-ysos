@@ -29,7 +29,7 @@ Resolution:
 Wavelength Range:
 The wavelength array cannot extend below 3300.0 Angstroms or above 10189.0 Angstroms.
 
-Ancilliary Data: You need to know the distance to the input YSO, but photometric measurements (eg. PanSTARRS gmag, rmag, and imag) are not required.
+Ancilliary Data: You need to know the distance to the input YSO, but photometric measurements (eg. PanSTARRS gmag, rmag, and imag) are optional.
 
 ## customizable aspects of nuts-for-ysos (WIP)
 - If using VIRUS parallel spectra, you can use the from_example_h5file() function and choose whether or not to rescale the spectrum based off its PanSTARRS gmag.
@@ -44,13 +44,8 @@ Ancilliary Data: You need to know the distance to the input YSO, but photometric
 # go nuts!
 
 To-do list:
--TEST EVERYTHING AGAIN!!
-- Finish up the notebook that puts everything together and shows how to interpret results
-- I could make import_templates.py do less unit conversions
 - Write notes in README for users about:
   - What packages to install, and their versions
-  - the limitations in wavelength range for this tool
-  - the resolution of the templates, the convolution to match resolution of the target YSO
   - how someone would change what features the fitting process evaluates
   - toggling whether or not to use PanSTARRS rmag and imag as a feature
   - how to switch out what photometry you use altogether
