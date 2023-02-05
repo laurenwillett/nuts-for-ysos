@@ -14,7 +14,7 @@ def from_example_h5file(h5filename, h5index, magscale=False):
 
     f = h5py.File('example_VIRUS_h5_files/'+h5filename, 'r')
 
-    T = Table.read('/storage/home/lhw5050/YSO_project/normalization.txt', format='ascii.fixed_width_two_line')
+    T = Table.read('VIRUS_normalization.txt', format='ascii.fixed_width_two_line')
     flux_normalization = np.array(T['normalization'])
     spectrum = f['CatSpectra']['spectrum'][h5index]*1e-17*flux_normalization #erg/s/cm2
     weight = f['CatSpectra']['weight'][h5index]
