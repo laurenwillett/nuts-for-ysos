@@ -3,6 +3,7 @@ import math
 from astropy.table import Table
 import arviz
 import pymc as pm
+import pytensor
 import pytensor.tensor as tt
 import scipy.optimize as optimize
 import scipy.stats as stats
@@ -129,52 +130,22 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         B_out_2 = 2*h*(nu_2**3)*(1/((tt.exp((h*nu_2)/(k_B*T)))-1))/(c**2)
         coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
         m_2 = tt.floor((nu_0*(Z_i**2)/nu_2)**(1/2)+1)
-        #get rid of repetitive calculations here?
-        frac1_2 = tt.switch(tt.eq(m_2, 1.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-        frac1_2 = frac1_2[frac1_2.nonzero()]
-        frac2_2 = tt.switch(tt.eq(m_2, 2.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-        frac2_2 = frac2_2[frac2_2.nonzero()]
-        frac3_2 = tt.switch(tt.eq(m_2, 3.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-        frac3_2 = frac3_2[frac3_2.nonzero()]
-        frac4_2 = tt.switch(tt.eq(m_2, 4.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-        frac4_2 = frac4_2[frac4_2.nonzero()]
-        frac5_2 = tt.switch(tt.eq(m_2, 5.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-        frac5_2 = frac5_2[frac5_2.nonzero()]
-        frac6_2 = tt.switch(tt.eq(m_2, 6.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-        frac6_2 = frac6_2[frac6_2.nonzero()]
-        y1_2 = tt.zeros(frac1_2.shape)
-        y2_2 = tt.zeros(frac2_2.shape)
-        y3_2 = tt.zeros(frac3_2.shape)
-        y4_2 = tt.zeros(frac4_2.shape)
-        y5_2 = tt.zeros(frac5_2.shape)
-        y6_2 = tt.zeros(frac6_2.shape)
-        #I wonder if there is a way to make this neater/quicker
-        #maybe avoid calculating the repeated bits over and over
-        for n in range(1, 20):
-            gn = 1 + (0.1728*(frac1_2**(1/3) - (2*(frac1_2**(-2/3))/(n**2)))) - .0496*(frac1_2**(2/3) - (2*(frac1_2**(-1/3))/((3*(n**2)))) + (2*(frac1_2**(-4/3))/((3*(n**4)))))
-            exp = (h*nu_0) / ((n**2)*k_B*T)
-            y1_2 += (n**-3)*(tt.exp(exp))*gn
-        for n in range(2, 20):
-            gn = 1 + (0.1728*(frac2_2**(1/3) - (2*(frac2_2**(-2/3))/(n**2)))) - .0496*(frac2_2**(2/3) - (2*(frac2_2**(-1/3))/((3*(n**2)))) + (2*(frac2_2**(-4/3))/((3*(n**4)))))
-            exp = (h*nu_0) / ((n**2)*k_B*T)
-            y2_2 += (n**-3)*(tt.exp(exp))*gn
-        for n in range(3, 20):
-            gn = 1 + (0.1728*(frac3_2**(1/3) - (2*(frac3_2**(-2/3))/(n**2)))) - .0496*(frac3_2**(2/3) - (2*(frac3_2**(-1/3))/((3*(n**2)))) + (2*(frac3_2**(-4/3))/((3*(n**4)))))
-            exp = (h*nu_0) / ((n**2)*k_B*T)
-            y3_2 += (n**-3)*(tt.exp(exp))*gn    
-        for n in range(4, 20):
-            gn = 1 + (0.1728*(frac4_2**(1/3) - (2*(frac4_2**(-2/3))/(n**2)))) - .0496*(frac4_2**(2/3) - (2*(frac4_2**(-1/3))/((3*(n**2)))) + (2*(frac4_2**(-4/3))/((3*(n**4)))))
-            exp = (h*nu_0) / ((n**2)*k_B*T)
-            y4_2 += (n**-3)*(tt.exp(exp))*gn 
-        for n in range(5, 20):
-            gn = 1 + (0.1728*(frac5_2**(1/3) - (2*(frac5_2**(-2/3))/(n**2)))) - .0496*(frac5_2**(2/3) - (2*(frac5_2**(-1/3))/((3*(n**2)))) + (2*(frac5_2**(-4/3))/((3*(n**4)))))
-            exp = (h*nu_0) / ((n**2)*k_B*T)
-            y5_2 += (n**-3)*(tt.exp(exp))*gn 
-        for n in range(6, 20):
-            gn = 1 + (0.1728*(frac6_2**(1/3) - (2*(frac6_2**(-2/3))/(n**2)))) - .0496*(frac6_2**(2/3) - (2*(frac6_2**(-1/3))/((3*(n**2)))) + (2*(frac6_2**(-4/3))/((3*(n**4)))))
-            exp = (h*nu_0) / ((n**2)*k_B*T)
-            y6_2 += (n**-3)*(tt.exp(exp))*gn 
-        g_fb_out_2=(tt.concatenate((y1_2,y2_2,y3_2,y4_2,y5_2,y6_2)))*coeff
+        y_s = tt.zeros(0)
+        for start_val in range(1,7):
+            frac = tt.switch(tt.eq(m_2, start_val), (nu_2/(nu_0 * (Z_i**2))), 0)
+            frac = frac[frac.nonzero()]
+            outputs_info = tt.zeros(frac.shape)
+            def accumulate_by_adding(n, sum_to_date):
+                gn = 1 + (0.1728*(frac**(1/3) - (2*(frac**(-2/3))/(n**2)))) - .0496*(frac**(2/3) - (2*(frac**(-1/3))/((3*(n**2)))) + (2*(frac**(-4/3))/((3*(n**4)))))
+                exp = (h*nu_0) / ((n**2)*k_B*T)
+                additive = (1/(n*n*n))*(tt.exp(exp))*gn
+                return sum_to_date + additive     
+            seq = tt.arange(start_val, 20,1)                      
+            result, updates= pytensor.scan(fn = accumulate_by_adding, outputs_info = outputs_info, sequences = seq)
+            y = result[-1]
+            y_s = tt.concatenate((y_s,y))
+            
+        g_fb_out_2=y_s*coeff
         g_ff_out_2 = 1 + (0.1728* ((nu_2/(nu_0*(Z_i**2)))**(1/3)) *(1+(2*k_B*T/(h*nu_2)))) - (.0496*((nu_2/(nu_0*(Z_i**2)))**(2/3)) * (1+(2*k_B*T/(3*h*nu_2)) +((4/3)*((k_B*T/(h*nu_2))**2)) ))
         j_out_2 = 5.44*(1e-39)*(tt.exp((-h*nu_2)/(k_B*T)))*(T**(-1/2)) * (n_e**2) * (g_ff_out_2 + g_fb_out_2)
         coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
@@ -226,7 +197,7 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         generate_slab_out_2 = (c*I_both_out_2/((wave_cm_2)**2)) * (1e-8)
         slab_shortened = generate_slab_out_2[(tt.eq(nu_2, nu[0])).nonzero()[0][0]:((tt.eq(nu_2, nu[-1])).nonzero()[0][0]+int(diff/wavelength_spacing_model)):int(diff/wavelength_spacing_model)] #sus?
 
-        #Cardelli et al 1989 reddening law (theano version)
+        #Cardelli et al 1989 reddening law
         wavelength_micron = def_wave / 10000
         wave_inv = (wavelength_micron**-1)
         x_OPT = wave_inv-1.82
