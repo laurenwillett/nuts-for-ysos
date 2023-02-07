@@ -35,8 +35,8 @@ Ancilliary Data:
  - Photometric measurements (eg. PanSTARRS gmag, rmag, and imag) are optional.
 
 ## customizable aspects of nuts-for-ysos
-- If analyzing a VIRUS spectrum, you can use the from_example_h5file() function in VIRUS_target_prep.py. Within this function you can choose whether or not to rescale the spectrum based off the PanSTARRS gmag listed in the h5file, using the argument magscale=True.
+- If analyzing a VIRUS spectrum, you can use the from_example_h5file() function in VIRUS_target_prep.py to prepare the spectrum for analysis. Within this function you can choose whether or not to rescale the spectrum based off the PanSTARRS gmag listed in the h5file, using the argument magscale=True.
 - You can choose the particular spectrum features (values, slopes, ratios of values, and photometric values) that are used in determining the best-fit model. See main_notebook.ipynb for more information.
-- The Rv can be changed from the default of 3.1 . The nuts-for-ysos code uses the Cardelli et al 1989 reddening law.
+- The Rv can be changed from the default of 3.1 in both the least squares and PyMC functions. The nuts-for-ysos code uses the Cardelli et al 1989 reddening law.
 
 # go nuts!
