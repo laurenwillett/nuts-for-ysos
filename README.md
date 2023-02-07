@@ -11,7 +11,8 @@ The user must provide a spectrum of an accreting YSO in the UV-Optical range. Th
   2. a non-accreting Class III YSO template spectrum observed with the X-Shooter spectrograph (Manara+ 2013, 2017).
 NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, traces for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use the trace to derive the YSO's mass accretion rate using their favorite stellar evolution model (see [insert paper] for example)
 
-## packages used:
+## packages/software used:
+- Python 3.9.16
 - arviz 0.14.0
 - astropy 5.2
 - corner 2.2.1
