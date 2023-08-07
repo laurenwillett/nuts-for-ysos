@@ -1,5 +1,5 @@
 # nuts-for-ysos
-**See [insert paper] for a full description of the methodology and the model used in nuts-for-ysos, as well as the interpretation of example results from nuts-for-ysos.** 
+**See Willett et. al 2023 for a full description of the methodology and the model used in nuts-for-ysos, as well as the interpretation of example results from nuts-for-ysos.** 
 
 This is a Python tool for determining, via Bayesian inference, the accretion luminosities of YSOs (Young Stellar Objects) along with their effective temperatures, stellar luminosities, and extinction. The tool uses the NUTS (No U-Turn Sampler) implemented through PyMC. This project is a niche application of PyMC; if you want to learn more about PyMC in general, check out https://www.pymc.io/welcome.html. 
 
@@ -8,8 +8,8 @@ nuts-for-ysos was originally written to analyze spectra from the VIRUS spectrogr
 In brief:
 The user must provide a spectrum of an accreting YSO in the UV-Optical range. Then, nuts-for-ysos fits a model to the YSO consisting of two components:
   1. a plane-parallel slab of hydrogen in local thermodynamic equilibrium (LTE) to represent emission from accretion.
-  2. a non-accreting Class III YSO template spectrum observed with the X-Shooter spectrograph (Manara+ 2013, 2017).
-NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, traces for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use the trace to derive the YSO's mass accretion rate using their favorite stellar evolution model (see [insert paper] for example)
+  2. a non-accreting Class III YSO template spectrum observed with the X-Shooter spectrograph (Manara et. al 2013, 2017).
+NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, traces for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use the trace to derive the YSO's mass and mass accretion rate using their favorite stellar evolution model (for example, Willett et. al 2023 uses Baraffe et. al 2015 and Siess et. al 2000 models)
 
 ## packages/software used:
 - Python 3.9.16
@@ -25,8 +25,8 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 
 ## input YSO spectrum requirements
 Resolution: 
-  Users should only use nuts-for-ysos on spectra with wavelength arrays spaced out by 0.3 Angstroms or more.
-  The provided X-Shooter template spectra are typically defined every 0.2 Angstroms except for a few (SO797, SO641 and SO999) that are defined every 0.3 Angstorms. The input spectrum shouldn't be higher resolution than the template spectra-- the code was built to make the templates lower resolution as needed, but not the other way around.
+  Users should only use this tool on spectra with wavelength arrays spaced out by 0.3 Angstroms or more.
+  The provided X-Shooter template spectra are typically defined every 0.2 Angstroms except for a few (SO797, SO641 and SO999) that are defined every 0.3 Angstorms. The input spectrum shouldn't be higher resolution than these template spectra-- the code was built to make the templates lower resolution as needed, but not the other way around.
 
 Wavelength Range:
 The wavelength array cannot extend below 3300.0 Angstroms or above 10189.0 Angstroms.
