@@ -27,7 +27,7 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 
 ## Input YSO spectrum requirements
 Resolution: 
-  Users should only use this tool on spectra with wavelength arrays spaced out by $\Delta \lambda = 0.3 \r{A}$ or more.
+  Users should only use this tool on spectra with wavelength arrays spaced out by $\Delta \lambda = 0.3 \AA$ or more.
   The provided X-Shooter template spectra are typically defined every 0.2 Angstroms except for a few (SO797, SO641 and SO999) that are defined every 0.3 Angstorms. The input spectrum shouldn't be higher resolution than these template spectra-- the code was built to make the templates lower resolution as needed, but not the other way around.
 
 Wavelength Range:
