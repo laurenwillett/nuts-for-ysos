@@ -6,6 +6,27 @@ def from_example_h5file(h5filename, h5index, magscale=False):
     #h5filename = '20190101_0000021.h5'
     #h5index=52
 
+    """Takes a provided .h5 file containing data from a VIRUS observation, and extracts a particular spectrum from the .h5 file.
+    It also cleans the spectrum, removing segments which have a low relative weight. 
+    It can scale the spectrum to match the object's Pan-STARRS g magnitude.
+
+    Parameters
+    ----------
+    h5filename : str
+        The path of the .h5 file.
+    h5index : int
+        The index of the desired spectrum.
+    magscale : bool, optional
+        Whether or not to scale the spectrum to match the object's Pan-STARRS g magnitude (default is False).
+
+    Returns
+    -------
+    YSO : numpy array
+        An array of the flux values for the YSO spectrum, in units of 10^-17 erg/s/cm2/Angstrom.
+    YSO_err : numpy array
+        An array of associated errors in the flux valus, in units of 10^-17 erg/s/cm2/Angstrom.
+    """
+
     #magscale is whether or not to rescale flux based off PanSTARRS g mag
     import h5py
 

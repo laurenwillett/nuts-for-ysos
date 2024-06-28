@@ -7,17 +7,36 @@ from astropy.convolution import Gaussian1DKernel
 from astropy.convolution import convolve
 
 def prep_scale_templates(def_wave_data, mean_resolution):
+
+    """ Generates the set of class III templates used for model fitting, with the correct resolution to match the resolution of the target spectrum. The function rescales the raw templates (taken from Manara+2013, Manara+2017) so that their median flux values follow a polynomial with temperature Teff. This makes it easier for the NUTS sampler to eventually interpolate between the templates later on.
+
+    Parameters
+    ----------
+    def_wave_data : numpy array
+        The array of wavelength values covered by the target spectrum in Angstroms.
+    mean_resolution : int, float
+        The mean resolution of the spectrum over the wavelength range.
+
+    Returns
+    -------
+    template_Teffs : numpy array
+        The effective temperature Teff associated with each template in Kelvin.
+    template_lums_new : numpy array
+        The new luminosity of the templates after they have been rescaled, in logarithmic solar units log(L/L_sun).
+    def_wave_model : numpy array
+        The wavelength array for the template spectra in Angstroms.
+    templates_scaled : numpy array
+        The flux values for the template spectra, in units of 10^-17 erg/s/cm2/Angstrom.
+    """
+    
     #for M dwarfs beyond M0 the SpT-->Teff scale is from Luhman et al. 2003: https://ui.adsabs.harvard.edu/abs/2003ApJ...593.1093L/abstract
     #for M0, as well as G and K stars: table A5 of Kenyon and Hartmann 1995: https://ui.adsabs.harvard.edu/abs/1995ApJS..101..117K/abstract
-
     M_SpTs = [0,1,2,3,4,5,6,7,8,9,9.5]
     M_Teffs = [3850,3705, 3560, 3415, 3270, 3125, 2990, 2880, 2710, 2400, 2330]
     M_scale = interpolate.interp1d(M_SpTs, M_Teffs)
-
     K_SpTs = [0,1,2,3,4,5,6,7]
     K_Teffs = [5250, 5080, 4900, 4730, 4590, 4350, 4205, 4060]
     K_scale = interpolate.interp1d(K_SpTs, K_Teffs)
-
     G_SpTs = [5,6,7,8,9]
     G_Teffs = [5770, 5700, 5630, 5520, 5410]
     G_scale = interpolate.interp1d(G_SpTs, G_Teffs)
@@ -40,9 +59,9 @@ def prep_scale_templates(def_wave_data, mean_resolution):
     spacing = float(np.diff(def_wave_UVB)[0])
     if def_wave_UVB[-1]+spacing < 10189:
         def_wave_VIS = np.arange(def_wave_UVB[-1]+spacing, 10189, spacing)
-        def_wave = np.concatenate((def_wave_UVB,def_wave_VIS))
+        def_wave_model = np.concatenate((def_wave_UVB,def_wave_VIS))
     else:
-        def_wave = def_wave_UVB
+        def_wave_model = def_wave_UVB
 
     #for making templates match the resolution of the user-inputted spectrum
     def gauss(w, sigma, mu):
@@ -50,7 +69,7 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         exp = (-((w-mu)**2)/(2*var)) 
         N = ((var*2*math.pi)**(-1/2)) * np.exp(exp)
         return N
-    FWHM = np.mean(def_wave)/mean_resolution
+    FWHM = np.mean(def_wave_model)/mean_resolution
     sigma = FWHM / (2.0 * np.sqrt(2.0 * np.log(2.0)))
     gauss = Gaussian1DKernel(stddev = sigma)
 
@@ -117,7 +136,7 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         wave_template_total = np.concatenate((wave_template_UVB, wave_template_VIS))
         flux_template_total = np.concatenate((flux_template_UVB, flux_template_VIS))
         convolved_flux_template_total = convolve((flux_template_total), gauss, boundary='extend')
-        interp_template_total = np.interp(def_wave, wave_template_total, convolved_flux_template_total, left=0.0, right=0.0)
+        interp_template_total = np.interp(def_wave_model, wave_template_total, convolved_flux_template_total, left=0.0, right=0.0)
         
         og_photosphere = interp_template_total* 1e17 # units of 10^-17 ergs/s/cm^2/A
         dist_scaled_photosphere = og_photosphere*(d_template**2)
@@ -144,7 +163,7 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         L_template_log_new = np.log10((10**(template_lums[t]))*factor)
         template_lums_new.append(L_template_log_new)
 
-    return [template_Teffs, template_lums_new, def_wave, templates_scaled]
+    return [template_Teffs, template_lums_new, def_wave_model, templates_scaled]
 
 
 

@@ -31,6 +31,46 @@ def make_gamma_dist(x1, p1, x2, p2): #p1 and p2 are percentiles (eg. 16 and 84) 
 
 
 def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, name, init_params, target_accept_set, length, chains, cores, Rv=3.1):
+
+    """ Uses the NUTS sampler in PyMC to fit the model to inputted features of the YSO spectrum, and outputs the full trace for each parameter, along with the resulting distributions for luminosity L and accretion luminosity Lacc. Saves the outputted trace to an ArviZ .netcdf file.
+
+       Parameters
+    ----------
+    def_wave_data : numpy array
+        The array of wavelength values covered by the target spectrum in Angstroms.
+    mean_resolution : int, float
+        The mean resolution of the spectrum over the wavelength range.
+    YSO_spectrum_features : numpy array
+        The array of the features taken from the YSO spectrum, which the model will be fit to.
+    YSO_spectrum_features_errs : numpy array 
+        The array of uncertainties associated with YSO_spectrum_features. 
+    feature_types : list of str
+        The types of features being inputted in YSO_spectrum_features, the default options being 'point', 'ratio', 'slope', and 'photometry'.
+    feature_bounds : list of tuples, lists, or arrays
+        The bounds associated with each feature.
+    distance_info: float or numpy array
+        The distance of the YSO in parsecs. It can be inputted either as a float (no errorbars) or as an array with [mean_distance, lower_bound , upper_bound].
+    name: str
+        The nickname of the YSO, which will be used for the name of the output .netcdf file.
+    init_params: numpy array
+        The initial starting point for the NUTS sampler.
+    target_accept_set: float in [0, 1]
+        The step size is tuned such that the NUTS sampler will approximate this acceptance rate.
+    length: int
+        The number of samples in each chain.
+    chains: int
+        The number of chains to sample.
+    cores: int
+        The number of chains to run in parallel.
+    Rv : float, optional
+        The Rv used in the extinction law from Cardelli et al 1989 (default is 3.1).
+
+        Returns
+    -------
+    trace0: ArviZ InferenceData object
+        The resulting trace for the parameters, plus for luminosity L, accretion luminosity Lacc, and the resulting spectral features of the model ('model_spec_features_traced').
+    
+    """
     
     template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
     
@@ -39,6 +79,9 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
     nu = c*(1e8) / def_wave
     diff = def_wave[1]-def_wave[0]
     wavelength_spacing_model = diff #angstroms
+    #dnu = tt.extra_ops.diff(nu)
+    #dnu = tt.concatenate([tt.stack(dnu[0]), dnu]) #causing trouble
+    #dnu = tt.concatenate([np.array([dnu[0]]), dnu])
     full_wave = wavelength_spacing_model*np.arange((def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-500)//wavelength_spacing_model)),(def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-25000)//wavelength_spacing_model)))
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
@@ -88,11 +131,11 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         Kslab_1e6_log = pm.Deterministic('Kslab_1e6_log', tt.log10(Kslab_1e6))
         Kphot_1e6_log = pm.Deterministic('Kphot_1e6_log', tt.log10(Kphot_1e6))
         Av = pm.Uniform('Av', 0, 10)
-        Av_grid_uncert = pm.HalfNormal('Av_grid_uncert', sigma=(0.5)/3)
+        Av_grid_uncert = pm.HalfNormal('Av_grid_uncert', sigma=(0.5)/3) #not an inferred model param
         Teff = pm.Uniform('Teff', 2615, 5550)
-        Teff_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=100)
+        Teff_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=100) #not an inferred model param
         Teff_grid_uncert = pm.Truncated("Teff_grid_uncert", Teff_grid_uncert_dist, lower=-200, upper=200)
-        Lum_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=0.2, shape=(len(template_lums)))
+        Lum_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=0.2, shape=(len(template_lums))) #not an inferred model param
         Lum_grid_uncert = pm.Truncated("Lum_grid_uncert", Lum_grid_uncert_dist, lower=-0.5, upper=0.5)
         
         #whether or not to make distance a prior or just a scalar depends on what information you have
@@ -127,6 +170,7 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         template_lum_left = template_lums_shared[(tt.eq(template_Teffs_shared, template_Teff_left).nonzero()[0][0])]
         my_template_lum = tt.switch(tt.eq(template_Teff_left,(Teff+Teff_grid_uncert)),template_lum_left,(leftweight*template_lum_left + rightweight*template_lum_right))
         
+        #the making of the slab model
         B_out_2 = 2*h*(nu_2**3)*(1/((tt.exp((h*nu_2)/(k_B*T)))-1))/(c**2)
         coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
         m_2 = tt.floor((nu_0*(Z_i**2)/nu_2)**(1/2)+1)
@@ -226,7 +270,9 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
             if feature_types[f] == 'photometry':
                 temp_spectrum = 1e-17 *model * 1e29 * (def_wave**2) / (c*(10**8)) #units conversion
                 dnu = tt.extra_ops.diff(nu)
-                dnu = tt.concatenate([tt.stack(dnu[0]), dnu])
+                ##dnu = tt.concatenate([tt.stack(dnu[0]), dnu]) #causing trouble
+                dnu = tt.concatenate([np.array([dnu[0]]), dnu])
+                #this line convolves the model spectrum with the photometric filter
                 mag = tt.dot((nu/dnu*temp_spectrum), feature_bounds[f]) / tt.sum((nu/dnu*feature_bounds[f]))
                 Mag = -2.5 * tt.log10(mag) + 23.9
                 model_spec_features = tt.set_subtensor(model_spec_features[f], Mag)

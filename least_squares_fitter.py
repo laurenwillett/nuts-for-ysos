@@ -24,6 +24,8 @@ def chi2_like(observed, errs, model):
     return chi2
 
 def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, YSO, Av, Rv=3.1):
+
+    """Determines initial starting values for Kslab and Kphot, which become initial guesses for the least-squares fit function below."""
     
     #Cardelli et al 1989 reddening law
     c = 2.99792458 * (1e10)
@@ -68,6 +70,37 @@ def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, Y
 
 
 def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, Rv=3.1, plot=True):
+
+    """ Takes the features of the YSO spectrum as input, and performs a least-squares fit of the model using each class III template, one-at-a-time. The function tries different values for Av from 0 to 10 in steps of +1. The best fit (the one with the lowest 'chi square') is outputted -- see more explanation in Willett et al. The least-squares fit will be used as an initial starting point for the NUTS sampler.
+
+    Parameters
+    ----------
+    def_wave_data : numpy array
+        The array of wavelength values covered by the target spectrum in Angstroms.
+    mean_resolution : int, float
+        The mean resolution of the spectrum over the wavelength range.
+    YSO : numpy array
+        The array of the flux values for the YSO spectrum, in units of 10^-17 erg/s/cm2/Angstrom.
+    YSO_spectrum_features : numpy array
+        The array of the features taken from the YSO spectrum, which the model will be fit to.
+    YSO_spectrum_features_errs : numpy array 
+        The array of uncertainties associated with YSO_spectrum_features. 
+    feature_types : list of str
+        The types of features being inputted in YSO_spectrum_features, the default options being 'point', 'ratio', 'slope', and 'photometry'.
+    feature_bounds : list of tuples, lists, or arrays
+        The bounds associated with each feature.
+    Rv : float, optional
+        The Rv used in the extinction law from Cardelli et al 1989 (default is 3.1).
+    plot : bool, optional
+        Whether or not to plot the result of the least-squares fit (default is True).
+
+    Returns
+    -------
+    best_fit_params : numpy array
+        The parameters T, n_e, tau_0, Kslab, Kphot, Av, and Teff of the best fit model.
+
+    """
+    
     print('performing initial least squares fit')
     template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
     

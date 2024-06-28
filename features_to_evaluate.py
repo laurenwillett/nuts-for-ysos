@@ -1,5 +1,14 @@
 import numpy as np
 
+""" these functions extract various features from the spectrum. 
+- The 'avg_point_feature' is an mean over some wavelength range with endpoints at left_end and right_end.
+- The 'ratio_feature' is the ratio between two points (or more precisely the ratio of two averages, each over a small wavelength range).
+- The 'slope_feature' is the difference between two points (or more precisely the difference of two averages, each over a small wavelength range).
+- The 'photometry_feature' is the convolution of the spectrum with a photometric filter, yielding the apparent magnitude in that filter.
+
+If the user wants to make their own custom type of feature to use in the model fitting, this is the place to include a new function for such a feature.
+""" 
+
 def avg_point_feature(wave, left_end, right_end, spectrum):
     value = np.mean(spectrum[int(np.where(wave == float(left_end))[0][0]):int(np.where(wave == float(right_end))[0][0])])
     return value
