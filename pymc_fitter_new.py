@@ -30,6 +30,46 @@ def make_gamma_dist(x1, p1, x2, p2): #p1 and p2 are percentiles (eg. 16 and 84) 
 
 
 def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, name, init_params, target_accept_set, length, chains, cores, Rv=3.1):
+
+        """ Uses the NUTS sampler in PyMC to fit the model to inputted features of the YSO spectrum, and outputs the full trace for each parameter, along with the resulting distributions for luminosity L and accretion luminosity Lacc. Saves the outputted trace to an ArviZ .netcdf file.
+
+       Parameters
+    ----------
+    def_wave_data : numpy array
+        The array of wavelength values covered by the target spectrum in Angstroms.
+    mean_resolution : int, float
+        The mean resolution of the spectrum over the wavelength range.
+    YSO_spectrum_features : numpy array
+        The array of the features taken from the YSO spectrum, which the model will be fit to.
+    YSO_spectrum_features_errs : numpy array 
+        The array of uncertainties associated with YSO_spectrum_features. 
+    feature_types : list of str
+        The types of features being inputted in YSO_spectrum_features, the default options being 'point', 'ratio', 'slope', and 'photometry'.
+    feature_bounds : list of tuples, lists, or arrays
+        The bounds associated with each feature.
+    distance_info: float or numpy array
+        The distance of the YSO in parsecs. It can be inputted either as a float (no errorbars) or as an array with [mean_distance, lower_bound , upper_bound].
+    name: str
+        The nickname of the YSO, which will be used for the name of the output .netcdf file.
+    init_params: numpy array
+        The initial starting point for the NUTS sampler.
+    target_accept_set: float in [0, 1]
+        The step size is tuned such that the NUTS sampler will approximate this acceptance rate.
+    length: int
+        The number of samples in each chain.
+    chains: int
+        The number of chains to sample.
+    cores: int
+        The number of chains to run in parallel.
+    Rv : float, optional
+        The Rv used in the extinction law from Cardelli et al 1989 (default is 3.1).
+
+        Returns
+    -------
+    trace0: ArviZ InferenceData object
+        The resulting trace for the parameters, plus for luminosity L, accretion luminosity Lacc, and the resulting spectral features of the model ('model_spec_features_traced').
+    
+    """
     
     template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
     
