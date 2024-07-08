@@ -1,3 +1,5 @@
+#delete this later
+
 import numpy as np
 import math
 from astropy.table import Table
