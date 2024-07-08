@@ -15,17 +15,17 @@ The user must provide a spectrum of an accreting YSO in the UV-Optical range. Th
      
 NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, traces for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use this trace to derive the YSO mass and mass accretion rate using their favorite stellar evolution model (for example, Willett et. al (in prep) uses Baraffe et. al 2015 and Siess et. al 2000 models)
 
-## Packages/software used (to be updated):
-- Python 3.9.16
-- arviz 0.14.0
-- astropy 5.2
-- corner 2.2.1
-- h5py 3.8.0
-- matplotlib 3.6.2
-- numpy 1.24.1
-- pymc 5.0.1
-- pytensor 2.8.11
-- scipy 1.9.3
+## Packages/software used:
+- Python 3.12.4
+- arviz 0.18.0
+- astropy 6.1.0
+- corner 2.2.2
+- h5py 3.11.0
+- matplotlib 3.9.1
+- numpy 1.26.4
+- pymc 5.16.1
+- pytensor 2.23.0
+- scipy 1.13.1
 
 ## Input YSO spectrum requirements
 Resolution: 
