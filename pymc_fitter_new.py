@@ -146,7 +146,7 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
             distance = d_target
         else:
             print('input distance should be in parsecs, as either a float or integer, or a list/array of the format [mean_distance, lower bound , upper bound]')
-            break
+            return None
             
         templates_scaled_shared = tt.as_tensor(np.array(templates_scaled))
         template_Teffs_shared_0 = tt.as_tensor(np.array(template_Teffs))
