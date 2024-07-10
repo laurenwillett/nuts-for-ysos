@@ -31,9 +31,9 @@ def make_gamma_dist(x1, p1, x2, p2): #p1 and p2 are percentiles (eg. 16 and 84) 
 
 def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, name, init_params, target_accept_set, length, chains, cores, Rv=3.1):
 
-    """ Uses the NUTS sampler in PyMC to fit the model to inputted features of the YSO spectrum, and outputs the full trace for each parameter, along with the resulting distributions for luminosity L and accretion luminosity Lacc. Saves the outputted trace to an ArviZ .netcdf file.
+    """Uses the NUTS sampler in PyMC to fit the model to inputted features of the YSO spectrum, and outputs the full trace for each parameter, along with the resulting distributions for luminosity L and accretion luminosity Lacc. Saves the outputted trace to an ArviZ .netcdf file.
 
-       Parameters
+    Parameters
     ----------
     def_wave_data : numpy array
         The array of wavelength values covered by the target spectrum in Angstroms.
@@ -48,7 +48,7 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
     feature_bounds : list of tuples, lists, or arrays
         The bounds associated with each feature.
     distance_info: float or numpy array
-        The distance of the YSO in parsecs. It can be inputted either as a float (no errorbars) or as an array with [mean_distance, lower_bound , upper_bound].
+        The distance of the YSO in parsecs. It can be inputted either as a float (no errorbars) or as an array with [mean_distance, lower_bound, upper_bound].
     name: str
         The nickname of the YSO, which will be used for the name of the output .netcdf file.
     init_params: numpy array
@@ -70,7 +70,6 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         The resulting trace for the parameters, plus for luminosity L, accretion luminosity Lacc, and the resulting spectral features of the model ('model_spec_features_traced').
     
     """
-    
     template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
     
     print('initializing PyMC fitter')
@@ -97,7 +96,11 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
     alpha = 1.439 * (1e4)
     lambda_0 = 300e-7 #defined by Manara 2013b
     freq_0 = c/lambda_0
+
+    #Table 2.1 in Manara 2014
+    Cns_fb = [152.519, 49.534, -118.858, 92.536, -34.194, 4.982] #valid from 0.125 to 1.6419 um (the photodetachment threshold)
     
+    #Table 2.2 in Manara 2014
     #valid 0.182 to 0.3645 um 
     Ans_ff_1 = [518.1021,  473.2636, -482.2089 , 115.5291, 0, 0]
     Bns_ff_1 = [-734.8667, 1443.4137 , -737.1616,  169.6374, 0, 0]
@@ -105,7 +108,8 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
     Dns_ff_1 = [-479.0721, 922.3575, -521.1341, 114.2430, 0, 0]
     Ens_ff_1 = [93.1373, -178.9275, 101.7963, -21.9972, 0, 0]
     Fns_ff_1 = [-6.4285, 12.3600, -7.0571,  1.5097, 0, 0]
-    
+
+    #Table 2.3 in Manara 2014
     #valid > 0.3645 um 
     Ans_ff_2 = [0, 2483.3460, -3449.8890, 2200.0400, -696.2710, 88.2830]
     Bns_ff_2 = [0, 285.8270, -1158.3820, 2427.7190, -1841.4000, 444.5170]
@@ -113,8 +117,6 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
     Dns_ff_2 = [0, 2827.7760, -11485.6320, 16755.5240, -10051.5300, 2095.2880]
     Ens_ff_2 = [0, -1341.5370, 5303.6090, -7510.4940, 4400.0670, -901.7880]
     Fns_ff_2 = [0, 208.9520, -812.9390, 1132.7380, -655.0200, 132.9850]
-
-    Cns_fb = [152.519, 49.534, -118.858, 92.536, -34.194, 4.982] #valid from 0.125 to 1.6419 um (the photodetachment threshold)
 
     with pm.Model() as model1:
         #setting priors:
@@ -146,14 +148,13 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
             distance = d_target
         else:
             print('input distance should be in parsecs, as either a float or integer, or a list/array of the format [mean_distance, lower bound , upper bound]')
-            return None
-            
+
+        #the interpolation between class III templates
         templates_scaled_shared = tt.as_tensor(np.array(templates_scaled))
         template_Teffs_shared_0 = tt.as_tensor(np.array(template_Teffs))
         template_Teffs_shared = template_Teffs_shared_0
         template_lums_shared_0 =  tt.as_tensor(template_lums)
         template_lums_shared = template_lums_shared_0 + Lum_grid_uncert
-        
         template_Teff_right = (tt.switch((template_Teffs_shared > (Teff+Teff_grid_uncert)), template_Teffs_shared, 0))
         template_Teff_right = tt.min(template_Teff_right[template_Teff_right.nonzero()])
         template_right = templates_scaled_shared[(tt.eq(template_Teffs_shared, template_Teff_right).nonzero()[0][0])]
@@ -168,48 +169,56 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         template_lum_left = template_lums_shared[(tt.eq(template_Teffs_shared, template_Teff_left).nonzero()[0][0])]
         my_template_lum = tt.switch(tt.eq(template_Teff_left,(Teff+Teff_grid_uncert)),template_lum_left,(leftweight*template_lum_left + rightweight*template_lum_right))
         
-        #the making of the slab model:
-        B_out_2 = 2*h*(nu_2**3)*(1/((tt.exp((h*nu_2)/(k_B*T)))-1))/(c**2)
-        coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
-        m_2 = tt.floor((nu_0*(Z_i**2)/nu_2)**(1/2)+1)
+        #the making of the slab model: See Manara 2014 (PhD thesis) chapter 2.2 for the equations
 
-        ##this is the new part that I had to change to omit pytensor.scan
+        #Hydrogen emission
+        B_out = 2*h*(nu_2**3)*(1/((tt.exp((h*nu_2)/(k_B*T)))-1))/(c**2) #the blackbody for temperature T
+        B_Lslab_out = 2*h*(freq_0**3)*(1/((tt.exp((h*freq_0)/(k_B*T)))-1))/(c**2)
+        
+        ##free-bound emission:
+        coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
+        m = tt.floor((nu_0*(Z_i**2)/nu_2)**(1/2)+1) #equation 2.14
+        ##this is the new part that I had to change to omit pytensor.scan: equation 2.13
         frac = nu_2/(nu_0 * (Z_i**2))
         n_s = np.arange(1,20,1)
         exps = (h*nu_0) / ((n_s**2)*k_B*T)
         additives = tt.zeros((len(n_s), len(nu_2)))
         for n in n_s:
-            gn = 1 + (0.1728*(frac**(1/3) - (2*(frac**(-2/3))/(n**2)))) - .0496*(frac**(2/3) - (2*(frac**(-1/3))/((3*(n**2)))) + (2*(frac**(-4/3))/((3*(n**4)))))
+            gn = 1 + (0.1728*(frac**(1/3) - (2*(frac**(-2/3))/(n**2)))) - .0496*(frac**(2/3) - (2*(frac**(-1/3))/((3*(n**2)))) + (2*(frac**(-4/3))/((3*(n**4))))) #equation 2.15
             additives = tt.set_subtensor(additives[n-1], (1/(n*n*n))*(tt.exp(exps[n-1]))*gn)
         y_s = tt.zeros(0)
         for start_val in range(1,7): #start_val is m
-            additives_masked = tt.switch(tt.eq(m_2, start_val), additives, 0)
+            additives_masked = tt.switch(tt.eq(m, start_val), additives, 0)
             y = tt.sum(additives_masked[start_val-1:], axis=0) #index additives [start_val-1:] and sum those components together
             y = y[y.nonzero()]
             y_s = tt.concatenate((y_s,y))
-        g_fb_out_2=y_s*coeff
-        
-        g_ff_out_2 = 1 + (0.1728* ((nu_2/(nu_0*(Z_i**2)))**(1/3)) *(1+(2*k_B*T/(h*nu_2)))) - (.0496*((nu_2/(nu_0*(Z_i**2)))**(2/3)) * (1+(2*k_B*T/(3*h*nu_2)) +((4/3)*((k_B*T/(h*nu_2))**2)) ))
-        j_out_2 = 5.44*(1e-39)*(tt.exp((-h*nu_2)/(k_B*T)))*(T**(-1/2)) * (n_e**2) * (g_ff_out_2 + g_fb_out_2)
-        coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
-        B_Lslab_out = 2*h*(freq_0**3)*(1/((tt.exp((h*freq_0)/(k_B*T)))-1))/(c**2)
-        g_ff_Lslab_out = 1 + (0.1728* ((freq_0/(nu_0*(Z_i**2)))**(1/3)) *(1+(2*k_B*T/(h*freq_0)))) - (.0496*((freq_0/(nu_0*(Z_i**2)))**(2/3)) * (1+(2*k_B*T/(3*h*freq_0)) +((4/3)*((k_B*T/(h*freq_0))**2)) ))
+        g_fb_out=y_s*coeff
         g_fb_Lslab_out = 0
-        for n in range(2, 20):
+        for n in range(2, 20): #m=2 for lambda=lambda_0
             gn = 1 + (0.1728*((freq_0/(nu_0 * (Z_i**2)))**(1/3) - (2*((freq_0/(nu_0 * (Z_i**2)))**(-2/3))/(n**2)))) - .0496*((freq_0/(nu_0 * (Z_i**2)))**(2/3) - (2*((freq_0/(nu_0 * (Z_i**2)))**(-1/3))/((3*(n**2)))) + (2*((freq_0/(nu_0 * (Z_i**2)))**(-4/3))/((3*(n**4)))))
-            g_fb_Lslab_out += (n**-3)*(tt.exp((h*nu_0) / ((n**2)*k_B*T)))*gn
-        g_fb_Lslab_out *= coeff 
-        j_Lslab_out = 5.44*(1e-39)*(tt.exp((-h*freq_0)/(k_B*T)))*(T**(-1/2)) * (n_e**2) * (g_ff_Lslab_out + g_fb_Lslab_out)
-        Lslab_out = tau_0 * B_Lslab_out / j_Lslab_out
-        tau_H_out_2 = j_out_2 * Lslab_out / B_out_2 
+            g_fb_Lslab_out += (1/(n*n*n))*(tt.exp((h*nu_0) / ((n**2)*k_B*T)))*gn
+        g_fb_Lslab_out *= coeff
+        
+        ##free-free emission:
+        g_ff_out = 1 + (0.1728* ((nu_2/(nu_0*(Z_i**2)))**(1/3)) *(1+(2*k_B*T/(h*nu_2)))) - (.0496*((nu_2/(nu_0*(Z_i**2)))**(2/3)) * (1+(2*k_B*T/(3*h*nu_2)) +((4/3)*((k_B*T/(h*nu_2))**2)) )) #equation 2.17
+        g_ff_Lslab_out = 1 + (0.1728* ((freq_0/(nu_0*(Z_i**2)))**(1/3)) *(1+(2*k_B*T/(h*freq_0)))) - (.0496*((freq_0/(nu_0*(Z_i**2)))**(2/3)) * (1+(2*k_B*T/(3*h*freq_0)) +((4/3)*((k_B*T/(h*freq_0))**2)) ))
+
+        ##total H emission
+        j_out = 5.44*(1e-39)*(tt.exp((-h*nu_2)/(k_B*T)))*(T**(-1/2)) * (n_e**2) * (g_ff_out + g_fb_out)
+        j_Lslab_out = 5.44*(1e-39)*(tt.exp((-h*freq_0)/(k_B*T)))*(T**(-1/2)) * (n_e**2) * (g_ff_Lslab_out + g_fb_Lslab_out) #equation 2.18
+        Lslab_out = tau_0 * B_Lslab_out / j_Lslab_out #equation 2.4
+        tau_H_out = j_out * Lslab_out / B_out #equation 2.23
+        I_H_out = tau_H_out * B_out * ((1-(tt.exp(-tau_H_out)))/tau_H_out)
+
+        ##H- emission (section 2.2.2):
         lamb_2 = (c/nu_2) *(1e4)
         lamb_2_alt = tt.switch(lamb_2 < lamb_0, lamb_2, lamb_0)
-        f_out_2 = tt.zeros(len(nu_2))
-        for n in range(0,6):
+        f_out = tt.zeros(len(nu_2))
+        for n in range(0,6): #equation 2.28
             Cn = Cns_fb[n]
-            f_out_2+= tt.switch(lamb_2 < lamb_0, Cn * ((1/lamb_2_alt) - (1/lamb_0))**((n)/2),0)
-        sigma_out_2 = tt.switch(lamb_2 < lamb_0, (1e-18)*(lamb_2_alt**3)*(((1/lamb_2_alt) - (1/lamb_0))**(3/2))*(f_out_2),0)
-        k_fb__out_2 = 0.750*(T**(-5/2))*(tt.exp(alpha/(lamb_0*T))) * (1-(tt.exp(-alpha/(lamb_2*T)))) * sigma_out_2
+            f_out+= tt.switch(lamb_2 < lamb_0, Cn * ((1/lamb_2_alt) - (1/lamb_0))**((n)/2),0)
+        sigma_out = tt.switch(lamb_2 < lamb_0, (1e-18)*(lamb_2_alt**3)*(((1/lamb_2_alt) - (1/lamb_0))**(3/2))*(f_out),0)
+        k_fb__out = 0.750*(T**(-5/2))*(tt.exp(alpha/(lamb_0*T))) * (1-(tt.exp(-alpha/(lamb_2*T)))) * sigma_out #equation 2.26
         lamb1_2 = tt.switch((lamb_2 <= 0.182), lamb_2, 0)
         lamb1_2 = lamb1_2[lamb1_2.nonzero()]  
         lamb2_2 = tt.switch((lamb_2 < 0.3645), lamb_2, 0)
@@ -220,25 +229,25 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         y1_2 = tt.zeros(lamb1_2.shape)
         y2_2 = tt.zeros(lamb2_2.shape)
         y3_2 = tt.zeros(lamb3_2.shape)
-        for n in range(0,6):
+        for n in range(0,6): #equation 2.29
             y2_2+= ((5040/T)**((n+1)/2)) * (((lamb2_2**2)*Ans_ff_1[n]) + Bns_ff_1[n] + (Cns_ff_1[n]/lamb2_2) + (Dns_ff_1[n]/(lamb2_2**2)) + (Ens_ff_1[n]/(lamb2_2**3)) + (Fns_ff_1[n]/(lamb2_2**4)))
             y3_2+= ((5040/T)**((n+1)/2)) * (((lamb3_2**2)*Ans_ff_2[n]) + Bns_ff_2[n] + (Cns_ff_2[n]/lamb3_2) + (Dns_ff_2[n]/(lamb3_2**2)) + (Ens_ff_2[n]/(lamb3_2**3)) + (Fns_ff_2[n]/(lamb3_2**4)))
-        k_ff__out_2 = (tt.concatenate((y1_2, y2_2, y3_2)))*(1e-29)
+        k_ff__out = (tt.concatenate((y1_2, y2_2, y3_2)))*(1e-29)
         coeff2 = ((h**3)/((2*math.pi*me*k_B)**(3/2)))
         n_H_out=0
         for n in range(1,20):
             n_H_out += (n**2)*(tt.exp(h*nu_0/((n**2)*k_B*T)))
         n_H_out*= coeff2*(T**(-3/2))*(n_e**2)
-        k_H__out_2 = (k_fb__out_2 + k_ff__out_2)*n_e*n_H_out*k_B*T
-        tau_H__out_2 = k_H__out_2 * Lslab_out
-        I_H_out_2 = tau_H_out_2 * B_out_2 * ((1-(tt.exp(-tau_H_out_2)))/tau_H_out_2)
-        I_H__out_2 = tau_H__out_2 * B_out_2 * ((1-(tt.exp(-tau_H__out_2)))/tau_H__out_2)
-        tau_total_2 = tau_H_out_2 + tau_H__out_2
-        beta_tau_total_out_2 = (1-(tt.exp(-tau_total_2)))/tau_total_2
-        I_both_out_2 = tau_total_2 * B_out_2 * beta_tau_total_out_2
-    
-        generate_slab_out_2 = (c*I_both_out_2/((wave_cm_2)**2)) * (1e-8)
-        slab_shortened = generate_slab_out_2[(tt.eq(nu_2, nu[0])).nonzero()[0][0]:((tt.eq(nu_2, nu[-1])).nonzero()[0][0]+int(diff/wavelength_spacing_model)):int(diff/wavelength_spacing_model)]
+        k_H__out = (k_fb__out + k_ff__out)*n_e*n_H_out*k_B*T #equation 2.30
+        tau_H__out = k_H__out * Lslab_out #equation 2.33
+        I_H__out = tau_H__out * B_out * ((1-(tt.exp(-tau_H__out)))/tau_H__out)
+
+        #total emission from the slab model, from both H and H- together
+        tau_total = tau_H_out + tau_H__out
+        beta_tau_total_out = (1-(tt.exp(-tau_total)))/tau_total
+        I_both_out = tau_total * B_out * beta_tau_total_out #equation 2.34
+        generate_slab_out = (c*I_both_out/((wave_cm_2)**2)) * (1e-8)
+        slab_shortened = generate_slab_out[(tt.eq(nu_2, nu[0])).nonzero()[0][0]:((tt.eq(nu_2, nu[-1])).nonzero()[0][0]+int(diff/wavelength_spacing_model)):int(diff/wavelength_spacing_model)] #over the wavelength range of just the templates
 
         #Cardelli et al 1989 reddening law
         wavelength_micron = def_wave / 10000
@@ -253,12 +262,12 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         z_IR = a_IR + (b_IR/Rv)
         A_specific  = (Av)* tt.switch(((wavelength_micron**-1) >= 1.1), z_OPT, z_IR)
         A_specific_2  = (Av+Av_grid_uncert)* tt.switch(((wavelength_micron**-1) >= 1.1), z_OPT, z_IR)  
-        
         reddened_slab = (slab_shortened * (10 ** (-0.4 * A_specific_2)))
         reddened_photosphere = (photosphere * (10 ** (-0.4 * A_specific)))
         model = reddened_slab*Kslab + reddened_photosphere*Kphot
         y = model
-        
+
+        #finally, we calculate the spectral features of the model so that the sampler can compare with the target YSO spectral features
         number_of_features = len(YSO_spectrum_features)
         model_spec_features = tt.zeros(number_of_features)
         for f in range(0, len(feature_types)):
@@ -273,11 +282,11 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
                 Mag = -2.5 * tt.log10(mag) + 23.9
                 model_spec_features = tt.set_subtensor(model_spec_features[f], Mag)
         model_spec_features_traced = pm.Deterministic('model_spec_features_traced', model_spec_features)
-        
-        integral = tt.sum(generate_slab_out_2*wavelength_spacing_model*Kslab/(1e17)) * 4*math.pi*((distance* 3.08567775815 * (10**18))**2)
+
+        #determine accretion luminosity Lacc and luminosity L from the model
+        integral = tt.sum(generate_slab_out*wavelength_spacing_model*Kslab/(1e17)) * 4*math.pi*((distance* 3.08567775815 * (10**18))**2)
         Lacc_log_current = tt.log10(integral/Lsun)
         Lacc_log_traced = pm.Deterministic('Lacc_log_traced',Lacc_log_current)
-        
         L_log_current = tt.log10(Kphot * (10**my_template_lum) * (distance**2))
         L_log_traced = pm.Deterministic('L_log_traced',L_log_current)
         
