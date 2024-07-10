@@ -79,7 +79,8 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
     wavelength_spacing_model = diff #angstroms
     dnu = tt.extra_ops.diff(nu)
     dnu = tt.concatenate([np.array([dnu[0]]), dnu])
-    full_wave = wavelength_spacing_model*np.arange((def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-500)//wavelength_spacing_model)),(def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-25000)//wavelength_spacing_model)))
+    #full_wave = wavelength_spacing_model*np.arange((def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-500)//wavelength_spacing_model)),(def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-25000)//wavelength_spacing_model)))
+    full_wave = wavelength_spacing_model*np.arange((def_wave[0]/wavelength_spacing_model-((def_wave[0]-500)//wavelength_spacing_model)),(def_wave[0]/wavelength_spacing_model-((def_wave[0]-25000)//wavelength_spacing_model)))
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
     
