@@ -304,7 +304,7 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
         Av_try = 0
         while Kphot_0>Kphot_upper or Kphot_0<Kphot_lower or Kslab_0 <0:
             Av_try += 1
-            Kslab_0, Kphot_0 = K_solver(def_wave, init_slab_model, init_photosphere, YSO, Av_try)
+            Kslab_0, Kphot_0 = K_solver(def_wave, init_slab_model, init_photosphere, def_wave_data, YSO, Av_try)
             if Av_try == 10:
                 break
         x0[3] = Kslab_0 
