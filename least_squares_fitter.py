@@ -1,3 +1,5 @@
+#This used the same slab generating as in the pymc_fitter. But I've found it is significantly slower.. so I put the old one back in for now
+
 from scipy.optimize import least_squares
 from scipy import linalg
 import numpy as np
@@ -111,7 +113,8 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     Kphot = tt.scalar('Kphot')
     Av = tt.scalar('Av')
     photosphere = tt.vector('photosphere')
-    
+
+    #various constants needed for the model
     c = 2.99792458 * (1e10)
     h = 6.62607004 * (1e-27)
     k_B = 1.38064852 * (1e-16)
@@ -120,7 +123,6 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     me = 9.10938356 * (1e-28)
     mp = 1.6726219 * (1e-24)
     Z_i = 1
-
     lamb_0 = 1.6419 #photodetachment threshold in microns
     alpha = 1.439 * (1e4)
     lambda_0 = 300e-7 #defined by Manara 2013b
@@ -133,6 +135,10 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
 
+    #Table 2.1 in Manara 2014
+    Cns_fb = [152.519, 49.534, -118.858, 92.536, -34.194, 4.982] #valid from 0.125 to 1.6419 um (the photodetachment threshold)
+    
+    #Table 2.2 in Manara 2014
     #valid 0.182 to 0.3645 um 
     Ans_ff_1 = [518.1021,  473.2636, -482.2089 , 115.5291, 0, 0]
     Bns_ff_1 = [-734.8667, 1443.4137 , -737.1616,  169.6374, 0, 0]
@@ -141,6 +147,7 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     Ens_ff_1 = [93.1373, -178.9275, 101.7963, -21.9972, 0, 0]
     Fns_ff_1 = [-6.4285, 12.3600, -7.0571,  1.5097, 0, 0]
 
+    #Table 2.3 in Manara 2014
     #valid > 0.3645 um 
     Ans_ff_2 = [0, 2483.3460, -3449.8890, 2200.0400, -696.2710, 88.2830]
     Bns_ff_2 = [0, 285.8270, -1158.3820, 2427.7190, -1841.4000, 444.5170]
@@ -149,75 +156,53 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     Ens_ff_2 = [0, -1341.5370, 5303.6090, -7510.4940, 4400.0670, -901.7880]
     Fns_ff_2 = [0, 208.9520, -812.9390, 1132.7380, -655.0200, 132.9850]
 
-    Cns_fb = [152.519, 49.534, -118.858, 92.536, -34.194, 4.982] #valid from 0.125 to 1.6419 um
-
-    B_out_2 = 2*h*(nu_2**3)*(1/((tt.exp((h*nu_2)/(k_B*T)))-1))/(c**2)
-    coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
-    m_2 = tt.floor((nu_0*(Z_i**2)/nu_2)**(1/2)+1)
-    frac1_2 = tt.switch(tt.eq(m_2, 1.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-    frac1_2 = frac1_2[frac1_2.nonzero()]
-    frac2_2 = tt.switch(tt.eq(m_2, 2.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-    frac2_2 = frac2_2[frac2_2.nonzero()]
-    frac3_2 = tt.switch(tt.eq(m_2, 3.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-    frac3_2 = frac3_2[frac3_2.nonzero()]
-    frac4_2 = tt.switch(tt.eq(m_2, 4.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-    frac4_2 = frac4_2[frac4_2.nonzero()]
-    frac5_2 = tt.switch(tt.eq(m_2, 5.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-    frac5_2 = frac5_2[frac5_2.nonzero()]
-    frac6_2 = tt.switch(tt.eq(m_2, 6.0), (nu_2/(nu_0 * (Z_i**2))), 0)
-    frac6_2 = frac6_2[frac6_2.nonzero()]
-    y1_2 = tt.zeros(frac1_2.shape)
-    y2_2 = tt.zeros(frac2_2.shape)
-    y3_2 = tt.zeros(frac3_2.shape)
-    y4_2 = tt.zeros(frac4_2.shape)
-    y5_2 = tt.zeros(frac5_2.shape)
-    y6_2 = tt.zeros(frac6_2.shape)
-    for n in range(1, 20):
-        gn = 1 + (0.1728*(frac1_2**(1/3) - (2*(frac1_2**(-2/3))/(n**2)))) - .0496*(frac1_2**(2/3) - (2*(frac1_2**(-1/3))/((3*(n**2)))) + (2*(frac1_2**(-4/3))/((3*(n**4)))))
-        exp = (h*nu_0) / ((n**2)*k_B*T)
-        y1_2 += (n**-3)*(tt.exp(exp))*gn
-    for n in range(2, 20):
-        gn = 1 + (0.1728*(frac2_2**(1/3) - (2*(frac2_2**(-2/3))/(n**2)))) - .0496*(frac2_2**(2/3) - (2*(frac2_2**(-1/3))/((3*(n**2)))) + (2*(frac2_2**(-4/3))/((3*(n**4)))))
-        exp = (h*nu_0) / ((n**2)*k_B*T)
-        y2_2 += (n**-3)*(tt.exp(exp))*gn
-    for n in range(3, 20):
-        gn = 1 + (0.1728*(frac3_2**(1/3) - (2*(frac3_2**(-2/3))/(n**2)))) - .0496*(frac3_2**(2/3) - (2*(frac3_2**(-1/3))/((3*(n**2)))) + (2*(frac3_2**(-4/3))/((3*(n**4)))))
-        exp = (h*nu_0) / ((n**2)*k_B*T)
-        y3_2 += (n**-3)*(tt.exp(exp))*gn    
-    for n in range(4, 20):
-        gn = 1 + (0.1728*(frac4_2**(1/3) - (2*(frac4_2**(-2/3))/(n**2)))) - .0496*(frac4_2**(2/3) - (2*(frac4_2**(-1/3))/((3*(n**2)))) + (2*(frac4_2**(-4/3))/((3*(n**4)))))
-        exp = (h*nu_0) / ((n**2)*k_B*T)
-        y4_2 += (n**-3)*(tt.exp(exp))*gn 
-    for n in range(5, 20):
-        gn = 1 + (0.1728*(frac5_2**(1/3) - (2*(frac5_2**(-2/3))/(n**2)))) - .0496*(frac5_2**(2/3) - (2*(frac5_2**(-1/3))/((3*(n**2)))) + (2*(frac5_2**(-4/3))/((3*(n**4)))))
-        exp = (h*nu_0) / ((n**2)*k_B*T)
-        y5_2 += (n**-3)*(tt.exp(exp))*gn 
-    for n in range(6, 20):
-        gn = 1 + (0.1728*(frac6_2**(1/3) - (2*(frac6_2**(-2/3))/(n**2)))) - .0496*(frac6_2**(2/3) - (2*(frac6_2**(-1/3))/((3*(n**2)))) + (2*(frac6_2**(-4/3))/((3*(n**4)))))
-        exp = (h*nu_0) / ((n**2)*k_B*T)
-        y6_2 += (n**-3)*(tt.exp(exp))*gn 
-    g_fb_out_2=(tt.concatenate((y1_2,y2_2,y3_2,y4_2,y5_2,y6_2)))*coeff
-    g_ff_out_2 = 1 + (0.1728* ((nu_2/(nu_0*(Z_i**2)))**(1/3)) *(1+(2*k_B*T/(h*nu_2)))) - (.0496*((nu_2/(nu_0*(Z_i**2)))**(2/3)) * (1+(2*k_B*T/(3*h*nu_2)) +((4/3)*((k_B*T/(h*nu_2))**2)) ))
-    j_out_2 = 5.44*(1e-39)*(tt.exp((-h*nu_2)/(k_B*T)))*(T**(-1/2)) * (n_e**2) * (g_ff_out_2 + g_fb_out_2)
-    coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
+    #Hydrogen emission
+    B_out = 2*h*(nu_2**3)*(1/((tt.exp((h*nu_2)/(k_B*T)))-1))/(c**2) #the blackbody for temperature T
     B_Lslab_out = 2*h*(freq_0**3)*(1/((tt.exp((h*freq_0)/(k_B*T)))-1))/(c**2)
-    g_ff_Lslab_out = 1 + (0.1728* ((freq_0/(nu_0*(Z_i**2)))**(1/3)) *(1+(2*k_B*T/(h*freq_0)))) - (.0496*((freq_0/(nu_0*(Z_i**2)))**(2/3)) * (1+(2*k_B*T/(3*h*freq_0)) +((4/3)*((k_B*T/(h*freq_0))**2)) ))
+        
+    ##free-bound emission:
+    coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
+    m = tt.floor((nu_0*(Z_i**2)/nu_2)**(1/2)+1) #equation 2.14
+    n_s = np.arange(1,20,1)
+    frac = nu_2/(nu_0 * (Z_i**2))
+    exps = (h*nu_0) / ((n_s**2)*k_B*T)
+    y_s = tt.zeros(0)
+    for start_val in range(1,7): #start_val is m
+        frac_m = tt.switch(tt.eq(m, float(start_val)), (nu_2/(nu_0 * (Z_i**2))), 0)
+        frac_m = frac_m[frac_m.nonzero()]
+        y_m = tt.zeros(frac_m.shape)
+        for n in range(start_val, 20):
+            gn = 1 + (0.1728*(frac_m**(1/3) - (2*(frac_m**(-2/3))/(n**2)))) - .0496*(frac_m**(2/3) - (2*(frac_m**(-1/3))/((3*(n**2)))) + (2*(frac_m**(-4/3))/((3*(n**4))))) #equation 2.15
+            additive = (1/(n*n*n))*(tt.exp(exps[n-1]))*gn
+            y_m += additive
+        y_s = tt.concatenate((y_s,y_m))
+    g_fb_out=y_s*coeff
     g_fb_Lslab_out = 0
-    for n in range(2, 20):
+    for n in range(2, 20): #m=2 for lambda=lambda_0
         gn = 1 + (0.1728*((freq_0/(nu_0 * (Z_i**2)))**(1/3) - (2*((freq_0/(nu_0 * (Z_i**2)))**(-2/3))/(n**2)))) - .0496*((freq_0/(nu_0 * (Z_i**2)))**(2/3) - (2*((freq_0/(nu_0 * (Z_i**2)))**(-1/3))/((3*(n**2)))) + (2*((freq_0/(nu_0 * (Z_i**2)))**(-4/3))/((3*(n**4)))))
-        g_fb_Lslab_out += (n**-3)*(tt.exp((h*nu_0) / ((n**2)*k_B*T)))*gn
-    g_fb_Lslab_out *= coeff 
-    j_Lslab_out = 5.44*(1e-39)*(tt.exp((-h*freq_0)/(k_B*T)))*(T**(-1/2)) * (n_e**2) * (g_ff_Lslab_out + g_fb_Lslab_out)
-    Lslab_out = tau_0 * B_Lslab_out / j_Lslab_out
-    tau_H_out_2 = j_out_2 * Lslab_out / B_out_2 
+        g_fb_Lslab_out += (1/(n*n*n))*(tt.exp((h*nu_0) / ((n**2)*k_B*T)))*gn
+    g_fb_Lslab_out *= coeff
+        
+    ##free-free emission:
+    g_ff_out = 1 + (0.1728* ((nu_2/(nu_0*(Z_i**2)))**(1/3)) *(1+(2*k_B*T/(h*nu_2)))) - (.0496*((nu_2/(nu_0*(Z_i**2)))**(2/3)) * (1+(2*k_B*T/(3*h*nu_2)) +((4/3)*((k_B*T/(h*nu_2))**2)) )) #equation 2.17
+    g_ff_Lslab_out = 1 + (0.1728* ((freq_0/(nu_0*(Z_i**2)))**(1/3)) *(1+(2*k_B*T/(h*freq_0)))) - (.0496*((freq_0/(nu_0*(Z_i**2)))**(2/3)) * (1+(2*k_B*T/(3*h*freq_0)) +((4/3)*((k_B*T/(h*freq_0))**2)) ))
+
+    ##total H emission
+    j_out = 5.44*(1e-39)*(tt.exp((-h*nu_2)/(k_B*T)))*(T**(-1/2)) * (n_e**2) * (g_ff_out + g_fb_out)
+    j_Lslab_out = 5.44*(1e-39)*(tt.exp((-h*freq_0)/(k_B*T)))*(T**(-1/2)) * (n_e**2) * (g_ff_Lslab_out + g_fb_Lslab_out) #equation 2.18
+    Lslab_out = tau_0 * B_Lslab_out / j_Lslab_out #equation 2.4
+    tau_H_out = j_out * Lslab_out / B_out #equation 2.23
+    I_H_out = tau_H_out * B_out * ((1-(tt.exp(-tau_H_out)))/tau_H_out)
+
+    ##H- emission (section 2.2.2):
     lamb_2 = (c/nu_2) *(1e4)
     lamb_2_alt = tt.switch(lamb_2 < lamb_0, lamb_2, lamb_0)
-    f_out_2 = tt.zeros(len(nu_2))
-    for n in range(0,6):
+    f_out = tt.zeros(len(nu_2))
+    for n in range(0,6): #equation 2.28
         Cn = Cns_fb[n]
-        f_out_2+= tt.switch(lamb_2 < lamb_0, Cn * ((1/lamb_2_alt) - (1/lamb_0))**((n)/2),0)
-    sigma_out_2 = tt.switch(lamb_2 < lamb_0, (1e-18)*(lamb_2_alt**3)*(((1/lamb_2_alt) - (1/lamb_0))**(3/2))*(f_out_2),0)
-    k_fb__out_2 = 0.750*(T**(-5/2))*(tt.exp(alpha/(lamb_0*T))) * (1-(tt.exp(-alpha/(lamb_2*T)))) * sigma_out_2
+        f_out+= tt.switch(lamb_2 < lamb_0, Cn * ((1/lamb_2_alt) - (1/lamb_0))**((n)/2),0)
+    sigma_out = tt.switch(lamb_2 < lamb_0, (1e-18)*(lamb_2_alt**3)*(((1/lamb_2_alt) - (1/lamb_0))**(3/2))*(f_out),0)
+    k_fb__out = 0.750*(T**(-5/2))*(tt.exp(alpha/(lamb_0*T))) * (1-(tt.exp(-alpha/(lamb_2*T)))) * sigma_out #equation 2.26
     lamb1_2 = tt.switch((lamb_2 <= 0.182), lamb_2, 0)
     lamb1_2 = lamb1_2[lamb1_2.nonzero()]  
     lamb2_2 = tt.switch((lamb_2 < 0.3645), lamb_2, 0)
@@ -228,28 +213,28 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     y1_2 = tt.zeros(lamb1_2.shape)
     y2_2 = tt.zeros(lamb2_2.shape)
     y3_2 = tt.zeros(lamb3_2.shape)
-    for n in range(0,6):
+    for n in range(0,6): #equation 2.29
         y2_2+= ((5040/T)**((n+1)/2)) * (((lamb2_2**2)*Ans_ff_1[n]) + Bns_ff_1[n] + (Cns_ff_1[n]/lamb2_2) + (Dns_ff_1[n]/(lamb2_2**2)) + (Ens_ff_1[n]/(lamb2_2**3)) + (Fns_ff_1[n]/(lamb2_2**4)))
         y3_2+= ((5040/T)**((n+1)/2)) * (((lamb3_2**2)*Ans_ff_2[n]) + Bns_ff_2[n] + (Cns_ff_2[n]/lamb3_2) + (Dns_ff_2[n]/(lamb3_2**2)) + (Ens_ff_2[n]/(lamb3_2**3)) + (Fns_ff_2[n]/(lamb3_2**4)))
-    k_ff__out_2 = (tt.concatenate((y1_2, y2_2, y3_2)))*(1e-29)
+    k_ff__out = (tt.concatenate((y1_2, y2_2, y3_2)))*(1e-29)
     coeff2 = ((h**3)/((2*math.pi*me*k_B)**(3/2)))
     n_H_out=0
     for n in range(1,20):
         n_H_out += (n**2)*(tt.exp(h*nu_0/((n**2)*k_B*T)))
     n_H_out*= coeff2*(T**(-3/2))*(n_e**2)
-    k_H__out_2 = (k_fb__out_2 + k_ff__out_2)*n_e*n_H_out*k_B*T
-    tau_H__out_2 = k_H__out_2 * Lslab_out
-    I_H_out_2 = tau_H_out_2 * B_out_2 * ((1-(tt.exp(-tau_H_out_2)))/tau_H_out_2)
-    I_H__out_2 = tau_H__out_2 * B_out_2 * ((1-(tt.exp(-tau_H__out_2)))/tau_H__out_2)
-    tau_total_2 = tau_H_out_2 + tau_H__out_2
-    beta_tau_total_out_2 = (1-(tt.exp(-tau_total_2)))/tau_total_2
-    I_both_out_2 = tau_total_2 * B_out_2 * beta_tau_total_out_2
+    k_H__out = (k_fb__out + k_ff__out)*n_e*n_H_out*k_B*T #equation 2.30
+    tau_H__out = k_H__out * Lslab_out #equation 2.33
+    I_H__out = tau_H__out * B_out * ((1-(tt.exp(-tau_H__out)))/tau_H__out)
 
-    generate_slab_out_2 = (c*I_both_out_2/((wave_cm_2)**2)) * (1e-8)
-    slab_shortened = generate_slab_out_2[(tt.eq(nu_2, nu[0])).nonzero()[0][0]:((tt.eq(nu_2, nu[-1])).nonzero()[0][0]+int(diff/wavelength_spacing_model)):int(diff/wavelength_spacing_model)]
+    #total emission from the slab model, from both H and H- together
+    tau_total = tau_H_out + tau_H__out
+    beta_tau_total_out = (1-(tt.exp(-tau_total)))/tau_total
+    I_both_out = tau_total * B_out * beta_tau_total_out #equation 2.34
+    generate_slab_out = (c*I_both_out/((wave_cm_2)**2)) * (1e-8)
+    slab_shortened = generate_slab_out[(tt.eq(nu_2, nu[0])).nonzero()[0][0]:((tt.eq(nu_2, nu[-1])).nonzero()[0][0]+int(diff/wavelength_spacing_model)):int(diff/wavelength_spacing_model)] #over the wavelength range of just the templates
     generate_slab = pytensor.function([T, n_e, tau_0], slab_shortened)
-    
-    #Cardelli et al 1989 reddening law (pytensor version)
+
+    #Cardelli et al 1989 reddening law
     wavelength_micron = def_wave / 10000
     wave_inv = (wavelength_micron**-1)
     x_OPT = wave_inv-1.82
@@ -261,9 +246,9 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     b_IR = -0.527*(x_IR**1.61)
     z_IR = a_IR + (b_IR/Rv)
     A_specific  = (Av)* tt.switch(((wavelength_micron**-1) >= 1.1), z_OPT, z_IR)
-    
     reddened_slab = (slab_shortened * (10 ** (-0.4 * A_specific)))
     reddened_photosphere = (photosphere * (10 ** (-0.4 * A_specific)))
+    
     model = reddened_slab*Kslab + reddened_photosphere*Kphot
     generate_model = pytensor.function([T, n_e, tau_0, Kslab, Kphot, Av, photosphere], [reddened_slab*Kslab, reddened_photosphere*Kphot, model])
     
@@ -285,6 +270,8 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
                 model_features.append(avg_point_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], model))
             if feature_types[f] == 'slope':
                 model_features.append(slope_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], feature_bounds[f][2], feature_bounds[f][3], model))
+            if feature_types[f] == 'ratio':
+                model_features.append(ratio_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], feature_bounds[f][2], feature_bounds[f][3], model))
             if feature_types[f] == 'photometry':
                 model_features.append(photometry_feature(def_wave, feature_bounds[f], model))
         model_features = np.array(model_features)
@@ -324,6 +311,8 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
                     good_model_features.append(avg_point_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], good_model))
                 if feature_types[f] == 'slope':
                     good_model_features.append(slope_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], feature_bounds[f][2], feature_bounds[f][3], good_model))
+                if feature_types[f] == 'ratio':
+                    good_model_features.append(ratio_feature(def_wave, feature_bounds[f][0], feature_bounds[f][1], feature_bounds[f][2], feature_bounds[f][3], good_model))
                 if feature_types[f] == 'photometry':
                     good_model_features.append(photometry_feature(def_wave, feature_bounds[f], good_model))
             good_model_features = np.array(good_model_features)

@@ -180,19 +180,19 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         coeff = (2*h*nu_0*(Z_i**2)) / (k_B*T)
         m = tt.floor((nu_0*(Z_i**2)/nu_2)**(1/2)+1) #equation 2.14
         ##this is the new part that I had to change to omit pytensor.scan: equation 2.13
-        frac = nu_2/(nu_0 * (Z_i**2))
         n_s = np.arange(1,20,1)
+        frac = nu_2/(nu_0 * (Z_i**2))
         exps = (h*nu_0) / ((n_s**2)*k_B*T)
-        additives = tt.zeros((len(n_s), len(nu_2)))
-        for n in n_s:
-            gn = 1 + (0.1728*(frac**(1/3) - (2*(frac**(-2/3))/(n**2)))) - .0496*(frac**(2/3) - (2*(frac**(-1/3))/((3*(n**2)))) + (2*(frac**(-4/3))/((3*(n**4))))) #equation 2.15
-            additives = tt.set_subtensor(additives[n-1], (1/(n*n*n))*(tt.exp(exps[n-1]))*gn)
         y_s = tt.zeros(0)
         for start_val in range(1,7): #start_val is m
-            additives_masked = tt.switch(tt.eq(m, start_val), additives, 0)
-            y = tt.sum(additives_masked[start_val-1:], axis=0) #index additives [start_val-1:] and sum those components together
-            y = y[y.nonzero()]
-            y_s = tt.concatenate((y_s,y))
+            frac_m = tt.switch(tt.eq(m, float(start_val)), (nu_2/(nu_0 * (Z_i**2))), 0)
+            frac_m = frac_m[frac_m.nonzero()]
+            y_m = tt.zeros(frac_m.shape)
+            for n in range(start_val, 20):
+                gn = 1 + (0.1728*(frac_m**(1/3) - (2*(frac_m**(-2/3))/(n**2)))) - .0496*(frac_m**(2/3) - (2*(frac_m**(-1/3))/((3*(n**2)))) + (2*(frac_m**(-4/3))/((3*(n**4))))) #equation 2.15
+                additive = (1/(n*n*n))*(tt.exp(exps[n-1]))*gn
+                y_m += additive
+            y_s = tt.concatenate((y_s,y_m))
         g_fb_out=y_s*coeff
         g_fb_Lslab_out = 0
         for n in range(2, 20): #m=2 for lambda=lambda_0
@@ -276,6 +276,8 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
                 model_spec_features = tt.set_subtensor(model_spec_features[f], (tt.mean(y[(tt.eq(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][1]).nonzero()[0][0])])))
             if feature_types[f] == 'slope':
                 model_spec_features = tt.set_subtensor(model_spec_features[f],(tt.mean(y[(tt.eq(def_wave, feature_bounds[f][2]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][3]).nonzero()[0][0])])) - (tt.mean(y[(tt.eq(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][1]).nonzero()[0][0])])))
+            if feature_types[f] == 'ratio':
+                model_spec_features = tt.set_subtensor(model_spec_features[f], (tt.mean(y[(tt.eq(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][1]).nonzero()[0][0])])) / (tt.mean(y[(tt.eq(def_wave, feature_bounds[f][2]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][3]).nonzero()[0][0])])))
             if feature_types[f] == 'photometry':
                 temp_spectrum = 1e-17 *model * 1e29 * (def_wave**2) / (c*(10**8)) #units conversion
                 #this line convolves the model spectrum with the photometric filter
