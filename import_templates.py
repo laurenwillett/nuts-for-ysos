@@ -55,9 +55,9 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         y = a*((x-c)**4) +d
         return y
 
+    #determine the wavelength range for the templates
     spacing = float(np.diff(def_wave_data)[0])
     def_wave_UVB = np.arange(3300, def_wave_data[-1]+spacing, spacing)
-    
     if def_wave_data[-1]+spacing < 10189:
         def_wave_VIS = np.arange(def_wave_UVB[-1]+spacing, 10189, spacing)
         def_wave_model = np.concatenate((def_wave_UVB,def_wave_VIS))
