@@ -23,7 +23,7 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 - h5py 3.11.0
 - matplotlib 3.9.1
 - numpy 1.26.4
-- pymc 5.16.1
+- pymc 5.16.1 (see [installation instructions](https://www.pymc.io/projects/docs/en/latest/installation.html))
 - pytensor 2.23.0
 - scipy 1.13.1
 
