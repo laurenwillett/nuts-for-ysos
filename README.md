@@ -20,9 +20,9 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 - pymc 5.16.1 (see [installation instructions](https://www.pymc.io/projects/docs/en/latest/installation.html))
 - included within PyMC install:
   - arviz 0.19.0 
-  - pytensor 2.23.0 
   - h5py 3.11.0
   - numpy 1.26.4
+  - pytensor 2.23.0 
   - scipy 1.14.0
 - astropy 6.1.0
 - corner 2.2.2
