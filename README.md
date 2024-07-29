@@ -17,15 +17,16 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 
 ## Packages/software used:
 - Python 3.12.4
-- arviz 0.18.0
+- pymc 5.16.1 (see [installation instructions](https://www.pymc.io/projects/docs/en/latest/installation.html))
+- included within PyMC install:
+  - arviz 0.18.0 
+  - pytensor 2.23.0 
+  - h5py 3.11.0
+  - numpy 1.26.4
+  - scipy 1.13.1
 - astropy 6.1.0
 - corner 2.2.2
-- h5py 3.11.0
 - matplotlib 3.9.1
-- numpy 1.26.4
-- pymc 5.16.1 (see [installation instructions](https://www.pymc.io/projects/docs/en/latest/installation.html))
-- pytensor 2.23.0
-- scipy 1.13.1
 
 ## Input YSO spectrum requirements
 Resolution: 
