@@ -17,7 +17,7 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 
 ## Packages/software used:
 - Python 3.12.4
-- pymc 5.16.1 (see [installation instructions](https://www.pymc.io/projects/docs/en/latest/installation.html))
+- pymc 5.16.1 (see [installation instructions](https://www.pymc.io/projects/docs/en/v5.16.1/installation.html))
 - included within PyMC install:
   - arviz 0.19.0 
   - h5py 3.11.0
