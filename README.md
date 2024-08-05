@@ -29,21 +29,21 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 - matplotlib 3.9.1
 
 ## Input YSO spectrum requirements
-Resolution: 
-  Users should only use this tool on spectra with wavelength arrays spaced out by $\Delta \lambda = 0.3$ Angstroms or more.
-  The provided X-Shooter template spectra are typically defined every 0.2 Angstroms except for a few (SO797, SO641 and SO999) that are defined every 0.3 Angstorms. The input spectrum shouldn't be higher resolution than these template spectra-- the code was built to make the templates lower resolution as needed, but not the other way around.
-
 Wavelength Range:
 The wavelength array cannot extend below 3300.0 Angstroms or above 10189.0 Angstroms.
 
+Resolution: 
+  Users should only use this tool on spectra with wavelength arrays spaced out by $\Delta \lambda = 0.3$ Angstroms or more.
+  The provided X-Shooter template spectra are typically defined every 0.2 Angstroms except for a few (SO797, SO641 and SO999) that are defined every 0.3 Angstorms. The input spectrum therefore shouldn't be higher resolution than these template spectra-- the code was built to make the templates lower resolution as needed, but not the other way around.
+
 Ancilliary Data: 
- - You must include the distance to the input YSO-- either as just a number, or with optional upper and lower limits.
- - Photometric measurements (eg. PanSTARRS gmag, rmag, and imag) are optional.
+ - You must include the distance to the input YSO-- either as just a number, or with optional upper and lower limits (see main_notebook.ipynb for an example of this).
+ - Photometric measurements for the YSO (eg. PanSTARRS gmag, rmag, and imag) can optionally be included.
 
 ## Customizable aspects of nuts-for-ysos
-- If analyzing a VIRUS spectrum, you can use the from_example_h5file() function in VIRUS_target_prep.py to extract the spectrum for analysis. Within this function you can choose whether or not to rescale the spectrum based off the PanSTARRS gmag listed in the h5file, using the argument magscale=True.
+- If analyzing a VIRUS spectrum, you can use the from_example_h5file() function in VIRUS_target_prep.py to extract the spectrum for analysis. Within this function you can choose whether or not to rescale the spectrum based off the PanSTARRS g magnitude listed in the h5file, using the argument magscale=True or magscale=False.
 - You can choose the particular spectrum features (values, slopes, ratios of values, and photometric values) that are used in determining the best-fit model. See main_notebook.ipynb for more information and a demonstration.
-- For the reddening law contained in the model, the Rv can be changed from the default of 3.1 in both least_squares_fitter.py and pymc_fitter.py if needed. The nuts-for-ysos code uses the Cardelli et al 1989 reddening law.
+- For the reddening law contained in the model, the Rv can be changed from the default of 3.1 within both least_squares_fitter.py and pymc_fitter.py if needed. The nuts-for-ysos code uses the Cardelli et al 1989 reddening law.
 
 # go nuts!
 ![nuts-for-ysos](https://img.freepik.com/premium-photo/squirrel-with-outer-space-background_839169-22689.jpg)
