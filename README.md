@@ -3,8 +3,6 @@
 
 **See main_notebook.ipynb for an example of how to use the nuts-for-ysos tool.** 
 
-![nuts-for-ysos](https://img.freepik.com/premium-photo/squirrel-with-outer-space-background_839169-22689.jpg)
-
 This is a Python tool for determining, via Bayesian inference, the accretion luminosities of YSOs (Young Stellar Objects) along with their effective temperatures, stellar luminosities, and extinction. The tool uses the NUTS (No U-Turn Sampler) implemented through PyMC. This project is a niche application of PyMC; if you want to learn more about PyMC in general, check out https://www.pymc.io/welcome.html. 
 
 nuts-for-ysos was originally written to analyze spectra from the VIRUS spectrograph at the Hobby Eberly Telescope, but can be customized for other spectra-- just take note of the "input YSO spectrum requirements" section below.
@@ -48,3 +46,4 @@ Ancilliary Data:
 - For the reddening law contained in the model, the Rv can be changed from the default of 3.1 in both least_squares_fitter.py and pymc_fitter.py if needed. The nuts-for-ysos code uses the Cardelli et al 1989 reddening law.
 
 # go nuts!
+![nuts-for-ysos](https://img.freepik.com/premium-photo/squirrel-with-outer-space-background_839169-22689.jpg)
