@@ -15,7 +15,7 @@ The user must provide a spectrum of an accreting YSO in the UV-Optical range. Th
      
 NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, traces for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use this trace to derive the YSO mass and mass accretion rate using their favorite stellar evolution model (for example, Willett et. al (in prep) uses Baraffe et. al 2015 and Siess et. al 2000 models)
 
-## Packages/software used:
+## Packages/software used
 - Python 3.12.4
 - pymc 5.16.1 (see [installation instructions](https://www.pymc.io/projects/docs/en/v5.16.1/installation.html))
 - included within PyMC install:
