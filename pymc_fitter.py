@@ -75,11 +75,9 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
     print('initializing PyMC fitter')
     c = 2.99792458 * (1e10)
     nu = c*(1e8) / def_wave
-    diff = def_wave[1]-def_wave[0]
-    wavelength_spacing_model = diff #angstroms
+    wavelength_spacing_model = def_wave[1]-def_wave[0] #angstroms
     dnu = tt.extra_ops.diff(nu)
     dnu = tt.concatenate([np.array([dnu[0]]), dnu])
-    #full_wave = wavelength_spacing_model*np.arange((def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-500)//wavelength_spacing_model)),(def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-25000)//wavelength_spacing_model)))
     full_wave = wavelength_spacing_model*np.arange((def_wave[0]/wavelength_spacing_model-((def_wave[0]-500)//wavelength_spacing_model)),(def_wave[0]/wavelength_spacing_model-((def_wave[0]-25000)//wavelength_spacing_model)))
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
@@ -248,7 +246,7 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         beta_tau_total_out = (1-(tt.exp(-tau_total)))/tau_total
         I_both_out = tau_total * B_out * beta_tau_total_out #equation 2.34
         generate_slab_out = (c*I_both_out/((wave_cm_2)**2)) * (1e-8)
-        slab_shortened = generate_slab_out[(tt.eq(nu_2, nu[0])).nonzero()[0][0]:((tt.eq(nu_2, nu[-1])).nonzero()[0][0]+int(diff/wavelength_spacing_model)):int(diff/wavelength_spacing_model)] #over the wavelength range of just the templates
+        slab_shortened = generate_slab_out[(tt.isclose(nu_2, nu[0])).nonzero()[0][0]:(tt.isclose(nu_2, nu[-1])).nonzero()[0][0]+1] #over the wavelength range of just the templates
 
         #Cardelli et al 1989 reddening law
         wavelength_micron = def_wave / 10000
@@ -273,11 +271,11 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         model_spec_features = tt.zeros(number_of_features)
         for f in range(0, len(feature_types)):
             if feature_types[f] == 'point':
-                model_spec_features = tt.set_subtensor(model_spec_features[f], (tt.mean(y[(tt.eq(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][1]).nonzero()[0][0])])))
+                model_spec_features = tt.set_subtensor(model_spec_features[f], (tt.mean(y[(tt.isclose(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.isclose(def_wave, feature_bounds[f][1]).nonzero()[0][0])])))
             if feature_types[f] == 'slope':
-                model_spec_features = tt.set_subtensor(model_spec_features[f],(tt.mean(y[(tt.eq(def_wave, feature_bounds[f][2]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][3]).nonzero()[0][0])])) - (tt.mean(y[(tt.eq(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][1]).nonzero()[0][0])])))
+                model_spec_features = tt.set_subtensor(model_spec_features[f],(tt.mean(y[(tt.isclose(def_wave, feature_bounds[f][2]).nonzero()[0][0]):(tt.isclose(def_wave, feature_bounds[f][3]).nonzero()[0][0])])) - (tt.mean(y[(tt.isclose(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.isclose(def_wave, feature_bounds[f][1]).nonzero()[0][0])])))
             if feature_types[f] == 'ratio':
-                model_spec_features = tt.set_subtensor(model_spec_features[f], (tt.mean(y[(tt.eq(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][1]).nonzero()[0][0])])) / (tt.mean(y[(tt.eq(def_wave, feature_bounds[f][2]).nonzero()[0][0]):(tt.eq(def_wave, feature_bounds[f][3]).nonzero()[0][0])])))
+                model_spec_features = tt.set_subtensor(model_spec_features[f], (tt.mean(y[(tt.isclose(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.isclose(def_wave, feature_bounds[f][1]).nonzero()[0][0])])) / (tt.mean(y[(tt.isclose(def_wave, feature_bounds[f][2]).nonzero()[0][0]):(tt.isclose(def_wave, feature_bounds[f][3]).nonzero()[0][0])])))
             if feature_types[f] == 'photometry':
                 temp_spectrum = 1e-17 *model * 1e29 * (def_wave**2) / (c*(10**8)) #units conversion
                 #this line convolves the model spectrum with the photometric filter
@@ -295,7 +293,7 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         
         observation = pm.Normal('observation', mu=model_spec_features, sigma=YSO_spectrum_features_errs, observed = YSO_spectrum_features)
         if isinstance(distance_info, np.ndarray) == True or isinstance(distance_info, list) == True:
-            trace0 = pm.sample(length, chains = chains, cores = cores, target_accept = target_accept_set, initvals = {'T': init_params[0], 'n_e_log': np.log10(init_params[1]), 'tau_0': init_params[2], 'Kslab_1e6': init_params[3]*1e6, 'Kphot_1e6': init_params[4]*1e6, 'Av': init_params[5], 'Teff': init_params[6], 'distance': d_target})  #do I really need 'distance' included here? for a starting point yes
+            trace0 = pm.sample(length, chains = chains, cores = cores, target_accept = target_accept_set, initvals = {'T': init_params[0], 'n_e_log': np.log10(init_params[1]), 'tau_0': init_params[2], 'Kslab_1e6': init_params[3]*1e6, 'Kphot_1e6': init_params[4]*1e6, 'Av': init_params[5], 'Teff': init_params[6], 'distance': d_target})
         else:
             trace0 = pm.sample(length, chains = chains, cores = cores, target_accept = target_accept_set, initvals = {'T': init_params[0], 'n_e_log': np.log10(init_params[1]), 'tau_0': init_params[2], 'Kslab_1e6': init_params[3]*1e6, 'Kphot_1e6': init_params[4]*1e6, 'Av': init_params[5], 'Teff': init_params[6]})
         

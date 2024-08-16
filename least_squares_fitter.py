@@ -56,12 +56,12 @@ def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, Y
     init_photosphere_red = np.array((init_photosphere * (10 ** (-0.4 * A_specific)))[0])
 
     #rounds to nearest number in the wavelength array
-    f360_YSO = (np.mean(YSO[int(np.where((def_wave_model-3568)==np.min(np.abs(def_wave_model-3568)))[0][0]):int(np.where((def_wave_model-3588)==np.min(np.abs(def_wave_model-3588)))[0][0])]))
-    f510_YSO = (np.mean(YSO[int(np.where((def_wave_model-5090)==np.min(np.abs(def_wave_model-5090)))[0][0]):int(np.where((def_wave_model-5110)==np.min(np.abs(def_wave_model-5110)))[0][0])]))
-    f360_slab = init_slab_model_red[np.where((def_wave_model-3578)==np.min(np.abs(def_wave_model-3578)))[0][0]]
-    f510_slab = init_slab_model_red[np.where((def_wave_model-5100)==np.min(np.abs(def_wave_model-5100)))[0][0]]
-    f360_phot = (np.mean(init_photosphere_red[int(np.where((def_wave_model-3568)==np.min(np.abs(def_wave_model-3568)))[0][0]):int(np.where((def_wave_model-3588)==np.min(np.abs(def_wave_model-3588)))[0][0])]))
-    f510_phot = (np.mean(init_photosphere_red[int(np.where((def_wave_model-5090)==np.min(np.abs(def_wave_model-5090)))[0][0]):int(np.where((def_wave_model-5110)==np.min(np.abs(def_wave_model-5110)))[0][0])]))
+    f360_YSO = (np.mean(YSO[np.argmin(abs(def_wave_model-3568)):np.argmin(abs(def_wave_model-3588))]))
+    f510_YSO = (np.mean(YSO[np.argmin(abs(def_wave_model-5090)):np.argmin(abs(def_wave_model-5110))]))
+    f360_slab = init_slab_model_red[np.argmin(abs(def_wave_model-3578))]
+    f510_slab = init_slab_model_red[np.argmin(abs(def_wave_model-5100))]
+    f360_phot = (np.mean(init_photosphere_red[np.argmin(abs(def_wave_model-3568)):np.argmin(abs(def_wave_model-3588))]))
+    f510_phot = (np.mean(init_photosphere_red[np.argmin(abs(def_wave_model-5090)):np.argmin(abs(def_wave_model-5110))]))
     
     b = np.array([f360_YSO, f510_YSO])
     a = np.array([[f360_phot, f360_slab], [f510_phot, f510_slab]])
@@ -129,9 +129,8 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     freq_0 = c/lambda_0
     
     nu = c*(1e8) / def_wave
-    diff = def_wave[1]-def_wave[0]
-    wavelength_spacing_model = diff
-    full_wave = wavelength_spacing_model*np.arange((def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-500)//wavelength_spacing_model)),(def_wave_data[0]/wavelength_spacing_model-((def_wave_data[0]-25000)//wavelength_spacing_model)))
+    wavelength_spacing_model = def_wave[1]-def_wave[0]
+    full_wave = wavelength_spacing_model*np.arange((def_wave[0]/wavelength_spacing_model-((def_wave[0]-500)//wavelength_spacing_model)),(def_wave[0]/wavelength_spacing_model-((def_wave[0]-25001)//wavelength_spacing_model)))
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
 
@@ -231,7 +230,7 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     beta_tau_total_out = (1-(tt.exp(-tau_total)))/tau_total
     I_both_out = tau_total * B_out * beta_tau_total_out #equation 2.34
     generate_slab_out = (c*I_both_out/((wave_cm_2)**2)) * (1e-8)
-    slab_shortened = generate_slab_out[(tt.eq(nu_2, nu[0])).nonzero()[0][0]:((tt.eq(nu_2, nu[-1])).nonzero()[0][0]+int(diff/wavelength_spacing_model)):int(diff/wavelength_spacing_model)] #over the wavelength range of just the templates
+    slab_shortened = generate_slab_out[(tt.isclose(nu_2, nu[0])).nonzero()[0][0]:(tt.isclose(nu_2, nu[-1])).nonzero()[0][0]+1]
     generate_slab = pytensor.function([T, n_e, tau_0], slab_shortened)
 
     #Cardelli et al 1989 reddening law
