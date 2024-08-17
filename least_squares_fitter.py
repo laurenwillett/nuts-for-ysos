@@ -102,7 +102,6 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
         The parameters T, n_e, tau_0, Kslab, Kphot, Av, and Teff of the best fit model.
 
     """
-    
     print('performing initial least squares fit')
     template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
     
@@ -127,10 +126,9 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     alpha = 1.439 * (1e4)
     lambda_0 = 300e-7 #defined by Manara 2013b
     freq_0 = c/lambda_0
-    
     nu = c*(1e8) / def_wave
-    wavelength_spacing_model = def_wave[1]-def_wave[0]
-    full_wave = wavelength_spacing_model*np.arange((def_wave[0]/wavelength_spacing_model-((def_wave[0]-500)//wavelength_spacing_model)),(def_wave[0]/wavelength_spacing_model-((def_wave[0]-25001)//wavelength_spacing_model)))
+
+    full_wave = np.concatenate((np.arange(500.0, def_wave[0], 2), def_wave, np.arange(def_wave[-1]+2, 25002 ,2)))
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
 

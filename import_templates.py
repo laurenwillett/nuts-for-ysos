@@ -56,14 +56,29 @@ def prep_scale_templates(def_wave_data, mean_resolution):
         return y
 
     #determine the wavelength range for the templates
-    spacing = float(np.diff(def_wave_data)[0])
-    def_wave_UVB = np.arange(3300, def_wave_data[-1]+spacing, spacing)
-    if def_wave_data[-1]+spacing < 10189:
-        def_wave_VIS = np.arange(def_wave_UVB[-1]+spacing, 10189, spacing)
-        def_wave_model = np.concatenate((def_wave_UVB,def_wave_VIS))
+    #this probably needs to be adjusted... what should I do if def_wave_data is not regularly spaced?
+    #spacing = float(np.diff(def_wave_data)[0])
+    #def_wave_UVB = np.arange(3300, def_wave_data[-1]+spacing, spacing)
+    #if def_wave_data[-1]+spacing < 10189:
+        #def_wave_VIS = np.arange(def_wave_UVB[-1]+spacing, 10189, spacing)
+        #def_wave_model = np.concatenate((def_wave_UVB,def_wave_VIS))
+    #else:
+        #def_wave_model = def_wave_UVB
+    
+    def_wave_data_trimmed = def_wave_data[(def_wave_data>=3300.0)*(def_wave_data<=10189.0)] #trim wavelength range to be within that of the te plates
+    spacing_left = float(np.diff(def_wave_data_trimmed)[0])
+    spacing_right = float(np.diff(def_wave_data_trimmed)[-1])
+    if def_wave_data_trimmed[0]>3300.0+spacing_left:
+        def_wave_ext_left = np.arange(3300.0, def_wave_data_trimmed[0], spacing_left)
     else:
-        def_wave_model = def_wave_UVB
-
+        def_wave_ext_left = np.array([])
+    if def_wave_data_trimmed[-1]+spacing_right < 10189.0:
+        def_wave_ext_right = np.arange(def_wave_data_trimmed[-1]+spacing_right, 10189.0, spacing_right)
+    else:
+        def_wave_ext_right = np.array([])
+    def_wave_model = np.concatenate((def_wave_ext_left,def_wave_data_trimmed,def_wave_ext_right))
+    #def_wave_model = np.concatenate((def_wave_data_trimmed,def_wave_ext_right))
+    
     #for making templates match the resolution of the user-inputted spectrum
     def gauss(w, sigma, mu):
         var = sigma**2
