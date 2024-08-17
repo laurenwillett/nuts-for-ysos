@@ -75,10 +75,12 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
     print('initializing PyMC fitter')
     c = 2.99792458 * (1e10)
     nu = c*(1e8) / def_wave
-    wavelength_spacing_model = def_wave[1]-def_wave[0] #angstroms
     dnu = tt.extra_ops.diff(nu)
     dnu = tt.concatenate([np.array([dnu[0]]), dnu])
-    full_wave = wavelength_spacing_model*np.arange((def_wave[0]/wavelength_spacing_model-((def_wave[0]-500)//wavelength_spacing_model)),(def_wave[0]/wavelength_spacing_model-((def_wave[0]-25000)//wavelength_spacing_model)))
+    #wavelength_spacing_model = def_wave[1]-def_wave[0] #angstroms
+    #full_wave = wavelength_spacing_model*np.arange((def_wave[0]/wavelength_spacing_model-((def_wave[0]-500)//wavelength_spacing_model)),(def_wave[0]/wavelength_spacing_model-((def_wave[0]-25000)//wavelength_spacing_model)))
+    wavelength_spacing_model = tt.extra_ops.diff(def_wave)
+    full_wave = np.concatenate((np.arange(500.0, def_wave[0], 2), def_wave, np.arange(def_wave[-1]+2, 25002 ,2)))
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
     
@@ -285,7 +287,7 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         model_spec_features_traced = pm.Deterministic('model_spec_features_traced', model_spec_features)
 
         #determine accretion luminosity Lacc and luminosity L from the model
-        integral = tt.sum(generate_slab_out*wavelength_spacing_model*Kslab/(1e17)) * 4*math.pi*((distance* 3.08567775815 * (10**18))**2)
+        integral = tt.dot((generate_slab_out[0:-1]+generate_slab_out[1:])/2, wavelength_spacing_model) *Kslab/(1e17) * 4*math.pi*((distance* 3.08567775815 * (10**18))**2)
         Lacc_log_current = tt.log10(integral/Lsun)
         Lacc_log_traced = pm.Deterministic('Lacc_log_traced',Lacc_log_current)
         L_log_current = tt.log10(Kphot * (10**my_template_lum) * (distance**2))
