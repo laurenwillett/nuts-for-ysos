@@ -1,5 +1,3 @@
-#This used the same slab generating as in the pymc_fitter. But I've found it is significantly slower.. so I put the old one back in for now
-
 from scipy.optimize import least_squares
 from scipy import linalg
 import numpy as np

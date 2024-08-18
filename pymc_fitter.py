@@ -77,8 +77,8 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
     nu = c*(1e8) / def_wave
     dnu = tt.extra_ops.diff(nu)
     dnu = tt.concatenate([np.array([dnu[0]]), dnu])
-    #wavelength_spacing_model = def_wave[1]-def_wave[0] #angstroms
-    #full_wave = wavelength_spacing_model*np.arange((def_wave[0]/wavelength_spacing_model-((def_wave[0]-500)//wavelength_spacing_model)),(def_wave[0]/wavelength_spacing_model-((def_wave[0]-25000)//wavelength_spacing_model)))
+
+    #for wavelength ranges not covered by the template, just define every 2 angstroms (a super fine wavelength array would make the code take longer to run and be overkill just for calculating the slab model)
     full_wave = np.concatenate((np.arange(500.0, def_wave[0], 2), def_wave, np.arange(def_wave[-1]+2, 25002 ,2)))
     wavelength_spacing_model = tt.extra_ops.diff(full_wave)
     nu_2 = c*(1e8) / full_wave
@@ -287,6 +287,7 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         model_spec_features_traced = pm.Deterministic('model_spec_features_traced', model_spec_features)
 
         #determine accretion luminosity Lacc and luminosity L from the model
+        #accretion luminosity Lacc is determined by integrating over the computed slab
         integral = tt.dot((generate_slab_out[0:-1]+generate_slab_out[1:])/2, wavelength_spacing_model) *Kslab/(1e17) * 4*math.pi*((distance* 3.08567775815 * (10**18))**2)
         Lacc_log_current = tt.log10(integral/Lsun)
         Lacc_log_traced = pm.Deterministic('Lacc_log_traced',Lacc_log_current)
