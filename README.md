@@ -13,12 +13,12 @@ The user must provide a spectrum of an accreting YSO in the UV-Optical range. Th
   1. a plane-parallel slab of hydrogen in local thermodynamic equilibrium (LTE) to represent emission from accretion.
   2. a non-accreting Class III YSO template spectrum, observed with the X-Shooter spectrograph (Manara et. al 2013, 2017).
      
-NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, traces for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use this trace to derive the YSO mass and mass accretion rate using their favorite stellar evolution model (for example, Willett et. al (in prep) uses Baraffe et. al 2015 and Siess et. al 2000 models)
+NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, traces for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use this trace to derive the YSO mass and mass accretion rate using their favorite stellar evolution model (for example, Willett et. al uses Baraffe et. al 2015 and Siess et. al 2000 models)
 
 ## Packages/software used
 - Python 3.12.4
 - pymc 5.16.1 (see [installation instructions](https://www.pymc.io/projects/docs/en/v5.16.1/installation.html))
-- included within PyMC install:
+- included within the PyMC install:
   - arviz 0.19.0 
   - h5py 3.11.0
   - numpy 1.26.4
