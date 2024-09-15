@@ -69,7 +69,7 @@ def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, Y
     return Kslab_0, Kphot_0
 
 
-def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, Rv=3.1, plot=True):
+def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, Rv=3.1, plot=True, xlims ='auto', ylims ='auto'):
 
     """ Takes the features of the YSO spectrum as input, and performs a least-squares fit of the model using each class III template, one-at-a-time. The function tries different values for Av from 0 to 10 in steps of +1. The best fit (the one with the lowest 'chi square') is outputted -- see more explanation in Willett et al. The least-squares fit will be used as an initial starting point for the NUTS sampler.
 
@@ -93,6 +93,10 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
         The Rv used in the extinction law from Cardelli et al 1989 (default is 3.1).
     plot : bool, optional
         Whether or not to plot the result of the least-squares fit (default is True).
+    xlims : str or tuple, optional
+        X-limits of the optional plot (The default string 'auto' sets the xlims to the minimum and maximum of the def_wave_data).
+    ylims : str or tuple, optional
+        Y-limits of the optional plot (The default string 'auto' sets the ylims to (1.2*np.max(YSO)/-100, 1.2*np.max(YSO)). )
 
     Returns
     -------
@@ -335,12 +339,18 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
             plt.plot(def_wave, best_slab_reddened, label = 'slab', zorder=3, c = 'black', lw = 1)
             plt.plot(def_wave, best_photosphere_reddened, label = 'photosphere', zorder=2, c = 'lime', lw = 1)
             plt.plot(def_wave_data, YSO, label = 'data', zorder=1, c = 'red', lw = 1, alpha = 0.5)
-            plt.xlim(def_wave_data[0], def_wave_data[-1])
+
+            if xlims == 'auto':
+                plt.xlim(def_wave_data[0], def_wave_data[-1])
+            else:
+                plt.xlim(xlims[0], xlims[1])
+            if ylims == 'auto':
+                plt.ylim(1.2*np.max(YSO)/-100, 1.2*np.max(YSO))
+            else:
+                plt.ylim(ylims[0], ylims[1])
             plt.xlabel('wavelength (Angstrom)')
             plt.ylabel('flux (e-17 ergs/s/cm2/A)')
             plt.title('least squares fit result')
-            plot_ylim = 1.2*np.max(YSO)
-            plt.ylim(plot_ylim/(-100),plot_ylim)
             plt.legend()
             plt.show()
         

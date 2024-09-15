@@ -58,6 +58,7 @@ def prep_scale_templates(def_wave_data, mean_resolution):
     def_wave_data_trimmed = def_wave_data[(def_wave_data>=3300.0)*(def_wave_data<=10189.0)] #trim data wavelength range to be within that of the templates
     spacing_left = float(np.diff(def_wave_data_trimmed)[0])
     spacing_right = float(np.diff(def_wave_data_trimmed)[-1])
+    #let the model include the entire range from 3300.0 to 10189.0, even if the data does not
     if def_wave_data_trimmed[0]>3300.0+spacing_left:
         def_wave_ext_left = np.arange(3300.0, def_wave_data_trimmed[0], spacing_left)
     else:
@@ -69,6 +70,9 @@ def prep_scale_templates(def_wave_data, mean_resolution):
     def_wave_model = np.concatenate((def_wave_ext_left,def_wave_data_trimmed,def_wave_ext_right))
     
     #for making templates match the resolution of the user-inputted spectrum
+    if np.min(np.diff(def_wave_data_trimmed)) < 0.3:
+        print('Warning: inputted data wavelength array contains a spacing of less than 0.3 Angstroms. The template data is defined every 0.3 Angroms, and any data with a higher resolution than this should first be converted to a resolution equal to or lower than the templates.')
+
     def gauss(w, sigma, mu):
         var = sigma**2
         exp = (-((w-mu)**2)/(2*var)) 
