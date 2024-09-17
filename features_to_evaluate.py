@@ -10,35 +10,38 @@ If the user wants to make their own custom type of feature to use in the model f
 """ 
 
 def avg_point_feature(wave, left_end, right_end, spectrum):
-    value = np.mean(spectrum[(np.isclose(wave, left_end)).nonzero()[0][0]:(np.isclose(wave, right_end)).nonzero()[0][0]])
+    value = np.nanmean(spectrum[(np.isclose(wave, left_end)).nonzero()[0][0]:(np.isclose(wave, right_end)).nonzero()[0][0]])
     return value
 
 def avg_point_feature_err(wave, left_end, right_end, spectrum, err):
     value_err = 0
     avg_err_range = (err[(np.isclose(wave, left_end)).nonzero()[0][0]:(np.isclose(wave, right_end)).nonzero()[0][0]])
     for element in avg_err_range:
-        value_err += (element**2)
+        if np.isnan(element) == False: 
+            value_err += (element**2)
     value_err = (value_err**(1/2))/len(avg_err_range)
     return value_err
 
 def ratio_feature(wave, left_end_num, right_end_num, left_end_denom, right_end_denom, spectrum):
-    num = np.mean(spectrum[(np.isclose(wave, left_end_num)).nonzero()[0][0]:(np.isclose(wave, right_end_num)).nonzero()[0][0]])
-    denom = np.mean(spectrum[(np.isclose(wave, left_end_denom)).nonzero()[0][0]:(np.isclose(wave, right_end_denom)).nonzero()[0][0]])
+    num = np.nanmean(spectrum[(np.isclose(wave, left_end_num)).nonzero()[0][0]:(np.isclose(wave, right_end_num)).nonzero()[0][0]])
+    denom = np.nanmean(spectrum[(np.isclose(wave, left_end_denom)).nonzero()[0][0]:(np.isclose(wave, right_end_denom)).nonzero()[0][0]])
     ratio = num/denom
     return ratio
 
 def ratio_feature_err(wave, left_end_num, right_end_num, left_end_denom, right_end_denom, spectrum, err):
-    num = np.mean(spectrum[(np.isclose(wave, left_end_num)).nonzero()[0][0]:(np.isclose(wave, right_end_num)).nonzero()[0][0]])
-    denom = np.mean(spectrum[(np.isclose(wave, left_end_denom)).nonzero()[0][0]:(np.isclose(wave, right_end_denom)).nonzero()[0][0]])
+    num = np.nanmean(spectrum[(np.isclose(wave, left_end_num)).nonzero()[0][0]:(np.isclose(wave, right_end_num)).nonzero()[0][0]])
+    denom = np.nanmean(spectrum[(np.isclose(wave, left_end_denom)).nonzero()[0][0]:(np.isclose(wave, right_end_denom)).nonzero()[0][0]])
     num_err = 0
     denom_err = 0
     num_err_range = (err[(np.isclose(wave, left_end_num)).nonzero()[0][0]:(np.isclose(wave, right_end_num)).nonzero()[0][0]])
     for element in num_err_range:
-        num_err += (element**2)
+        if np.isnan(element) == False: 
+            num_err += (element**2)
     num_err = (num_err**(1/2))/len(num_err_range)
     denom_err_range = (err[(np.isclose(wave, left_end_denom)).nonzero()[0][0]:(np.isclose(wave, right_end_denom)).nonzero()[0][0]])
     for element in denom_err_range:
-        denom_err += (element**2)
+        if np.isnan(element) == False: 
+            denom_err += (element**2)
     denom_err = (denom_err**(1/2))/len(denom_err_range)
     ratio = num/denom
     ratio_err_1 = (num_err / num)**2
@@ -47,8 +50,8 @@ def ratio_feature_err(wave, left_end_num, right_end_num, left_end_denom, right_e
     return ratio_err
 
 def slope_feature(wave, left_end_y1, right_end_y1, left_end_y2, right_end_y2, spectrum):
-    left = np.mean(spectrum[(np.isclose(wave, left_end_y1)).nonzero()[0][0]:(np.isclose(wave, right_end_y1)).nonzero()[0][0]])
-    right = np.mean(spectrum[(np.isclose(wave, left_end_y2)).nonzero()[0][0]:(np.isclose(wave, right_end_y2)).nonzero()[0][0]])
+    left = np.nanmean(spectrum[(np.isclose(wave, left_end_y1)).nonzero()[0][0]:(np.isclose(wave, right_end_y1)).nonzero()[0][0]])
+    right = np.nanmean(spectrum[(np.isclose(wave, left_end_y2)).nonzero()[0][0]:(np.isclose(wave, right_end_y2)).nonzero()[0][0]])
     slope = right-left
     return slope
 
@@ -56,12 +59,14 @@ def slope_feature_err(wave, left_end_y1, right_end_y1, left_end_y2, right_end_y2
     left_err = 0
     left_err_range = (err[(np.isclose(wave, left_end_y1)).nonzero()[0][0]:(np.isclose(wave, right_end_y1)).nonzero()[0][0]])
     for element in left_err_range:
-        left_err += (element**2)
+        if np.isnan(element) == False:
+            left_err += (element**2)
     left_err = (left_err**(1/2))/len(left_err_range)
     right_err = 0
     right_err_range = (err[(np.isclose(wave, left_end_y2)).nonzero()[0][0]:(np.isclose(wave, right_end_y2)).nonzero()[0][0]])
     for element in right_err_range:
-        right_err += (element**2)
+        if np.isnan(element) == False:
+            right_err += (element**2)
     right_err = (right_err**(1/2))/len(right_err_range)
     slope_err = ((left_err)**2 + (right_err)**2)**(1/2)
     return slope_err
@@ -69,6 +74,7 @@ def slope_feature_err(wave, left_end_y1, right_end_y1, left_end_y2, right_end_y2
 def photometry_feature(wave, filt, spectrum):
     c = 2.99792458 * (1e10)
     spectrum = 1e-17*spectrum #spectrum in ergs/s/cm^2/A
+    spectrum = np.ma.masked_invalid(spectrum)
     temp_spectrum = spectrum * 1e29 * (wave**2) / (c*(10**8)) #units conversion
     nu =  c / wave
     dnu = np.diff(nu)
