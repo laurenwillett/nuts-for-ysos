@@ -30,7 +30,7 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 
 ## Input YSO spectrum requirements
 Wavelength Range:
-The wavelength array cannot extend below 3300.0 Angstroms or above 10189.0 Angstroms.
+The wavelength array cannot extend outside the range of the Class III templates. For the default X-Shooter templates provided, the wavelengths must be above 3300.0 Angstroms and below 10189.0 Angstroms.
 
 Resolution: 
 - Users should only use this tool on spectra with wavelength arrays spaced out by $\Delta \lambda = 0.3$ Angstroms or more. The provided X-Shooter template spectra are typically defined every 0.2 Angstroms except for a few (SO797, SO641 and SO999) that are defined every 0.3 Angstorms. The input spectrum therefore shouldn't be higher resolution than these template spectra-- the code was built to make the templates lower resolution as needed to match the data, but not the other way around.
@@ -44,7 +44,7 @@ Ancilliary Data:
 - If analyzing a VIRUS spectrum, you can use the from_example_h5file() function in VIRUS_target_prep.py to extract the spectrum for analysis. Within this function you can choose whether or not to rescale the spectrum based off the PanSTARRS g magnitude listed in the h5file, using the argument magscale=True or magscale=False.
 - You can choose the particular spectrum features (values, slopes, ratios of values, and photometric magnitudes) that are used in determining the best-fit model. See main_notebook.ipynb for more information and a demonstration.
 - The grid of Class III templates can be changed. The nuts-for-ysos code uses the subset of templates listed in template_parameters_set.csv, but all available templates from Manara et al 2013 and Manara et al 2017 are separately listed in the file template_parameters_all_M13_M17.csv. Any template from template_parameters_all_M13_M17.csv can be added to template_parameters_set.csv to automatically include it in the grid.
-- It's also possible to implement other Class III templates, such as the new ones in Claes et al 2024. For access to these templates and their interpolable grid, see the FRAPPE github repository (https://github.com/RikClaes/FRAPPE/tree/main?tab=readme-ov-file). To include these templates in nuts-for-ysos, see the explanation in the nuts-for-ysos main_notebook.ipynb. All you'll need to do is provide the array of fluxes, the wavelength range, the Teffs, and the luminosities.
+- It's also possible to implement other Class III templates, such as the new ones in Claes et al 2024. For access to these templates and their interpolable grid, see the FRAPPE github repository (https://github.com/RikClaes/FRAPPE). To include these templates in nuts-for-ysos, see the explanation in the nuts-for-ysos main_notebook.ipynb. All you'll need to do is provide the array of fluxes, the wavelength range, the Teffs, and the luminosities.
 - For the reddening law contained in the model, the Rv can be changed from the default of 3.1 in both the least_squares_fit_function and pymc_NUTS_fitting function. The nuts-for-ysos code uses the Cardelli et al 1989 reddening law.
 
 # go nuts!
