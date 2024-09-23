@@ -83,7 +83,7 @@ def prep_scale_templates(def_wave_data, mean_resolution):
     gauss = Gaussian1DKernel(stddev = sigma)
 
     #load in templates
-    template_table = Table.read('template_parameters_subset_final.csv')
+    template_table = Table.read('template_parameters_set.csv')
     templates_dist_scaled = []
     templates_scaled = []
     template_names = []
