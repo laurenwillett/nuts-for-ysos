@@ -6,11 +6,8 @@ from astropy.table import Table
 import matplotlib.pyplot as plt
 import pytensor
 import pytensor.tensor as tt
-
 from scipy import interpolate
-
-from import_templates import prep_scale_templates
-from features_to_evaluate import avg_point_feature, slope_feature, photometry_feature
+from features_to_evaluate import avg_point_feature, slope_feature, ratio_feature, photometry_feature
 
 def chi2_like(observed, errs, model):
     chi2 = 0
@@ -69,7 +66,8 @@ def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, Y
     return Kslab_0, Kphot_0
 
 
-def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, Rv=3.1, plot=True, xlims ='auto', ylims ='auto'):
+def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, def_wave_model, templates_scaled, template_Teffs, template_lums, Rv=3.1, plot=True, xlims ='auto', ylims ='auto'):
+#def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, Rv=3.1, plot=True, xlims ='auto', ylims ='auto'):
 
     """ Takes the features of the YSO spectrum as input, and performs a least-squares fit of the model using each class III template, one-at-a-time. The function tries different values for Av from 0 to 10 in steps of +1. The best fit (the one with the lowest 'chi square') is outputted -- see more explanation in Willett et al. The least-squares fit will be used as an initial starting point for the NUTS sampler.
 
@@ -105,8 +103,12 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
 
     """
     print('performing initial least squares fit')
-    template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
+
+    #take this out and make it an argument instead
+    #template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
     
+    def_wave = np.array(def_wave_model)
+
     T = tt.scalar('T')
     n_e = tt.scalar('n_e')
     tau_0 = tt.scalar('tau_0')
@@ -280,7 +282,6 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
     
     for t in range(0, len(templates_scaled)):
         init_photosphere = templates_scaled[t]
-        init_photosphere_lum = template_lums[t]
         init_Teff = template_Teffs[t]
     
         Kslab_0, Kphot_0 = K_solver(def_wave, init_slab_model, init_photosphere, def_wave_data, YSO, 0)
@@ -303,7 +304,8 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
             model_params_results = x['x']
             params_saved.append([model_params_results[0], model_params_results[1], model_params_results[2], model_params_results[3], model_params_results[4], model_params_results[5], init_Teff])
             good_photosphere = init_photosphere
-            good_model = generate_model(model_params_results[0], model_params_results[1], model_params_results[2], model_params_results[3], model_params_results[4], model_params_results[5], good_photosphere)[2]
+            good_model_components = generate_model(model_params_results[0], model_params_results[1], model_params_results[2], model_params_results[3], model_params_results[4], model_params_results[5], good_photosphere)
+            good_model = good_model_components[2]
             good_model_features = []
             for f in range(0, len(feature_types)):
                 if feature_types[f] == 'point':
@@ -319,6 +321,16 @@ def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum
             chi_squares.append(chisq)
             fit_photospheres.append(init_photosphere)
             fit_Teffs.append(init_Teff)
+
+            #print(good_model_features)
+            #plt.plot(def_wave, good_model, label = 'model fit', zorder=4, c = 'blue', lw = 1, alpha = 0.5)
+            #plt.plot(def_wave, good_model_components[0], label = 'slab', zorder=3, c = 'black', lw = 1)
+            #plt.plot(def_wave, good_model_components[1], label = 'photosphere', zorder=2, c = 'lime', lw = 1)
+            #plt.plot(def_wave_data, YSO, label = 'data', zorder=1, c = 'red', lw = 1, alpha = 0.5)
+            #plt.xlim(xlims[0], xlims[1])
+            #plt.ylim(ylims[0], ylims[1])
+            #plt.show()
+        
         except Exception:
             #print('infeasible SpT \n')
             pass

@@ -8,7 +8,6 @@ import pytensor.tensor as tt
 import scipy.optimize as optimize
 import scipy.stats as stats
 from scipy.stats.kde import gaussian_kde
-from import_templates import prep_scale_templates
 
 def make_gamma_dist(x1, p1, x2, p2): #p1 and p2 are percentiles (eg. 16 and 84) with respective values x1 and x2
     # Standardize so that x1 < x2 and p1 < p2
@@ -28,8 +27,8 @@ def make_gamma_dist(x1, p1, x2, p2): #p1 and p2 are percentiles (eg. 16 and 84) 
     dist_space = np.linspace( min(gamma_dist), max(gamma_dist), 1000 )
     return dist_space, kde(dist_space)
 
-
-def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, name, init_params, target_accept_set, length, chains, cores, Rv=3.1):
+def pymc_NUTS_fitting(YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, name, def_wave_model, templates_scaled, template_Teffs, template_lums, init_params, target_accept_set, length, chains, cores, Rv=3.1):
+#def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, name, init_params, target_accept_set, length, chains, cores, Rv=3.1):
 
     """Uses the NUTS sampler in PyMC to fit the model to inputted features of the YSO spectrum, and outputs the full trace for each parameter, along with the resulting distributions for luminosity L and accretion luminosity Lacc. Saves the outputted trace to an ArviZ .netcdf file.
 
@@ -70,7 +69,8 @@ def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO
         The resulting trace for the parameters, plus for luminosity L, accretion luminosity Lacc, and the resulting spectral features of the model ('model_spec_features_traced').
     
     """
-    template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
+    def_wave = np.array(def_wave_model)
+    #template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
     
     print('initializing PyMC fitter')
     c = 2.99792458 * (1e10)
