@@ -11,7 +11,7 @@ Included in this repository are several example VIRUS YSO spectra from Willett e
 In brief:
 The user must provide a spectrum of an accreting YSO in the UV-Optical range. The user must also make a list of spectral features (eg. values, slopes, ratios of values, and photometric magnitudes) that will be used to fit the accreting YSO model to the data. Then, nuts-for-ysos fits the model which consists of two components:
   1. a plane-parallel slab of hydrogen in local thermodynamic equilibrium (LTE) to represent emission from accretion.
-  2. a non-accreting Class III YSO template spectrum, observed with the X-Shooter spectrograph (Manara et. al 2013, 2017).
+  2. a non-accreting Class III YSO template spectrum, which is linearly interpolated from a set of actual Class III YSOs of varying spectral types observed with the X-Shooter spectrograph (Manara et. al 2013, 2017).
      
 NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, traces for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use this trace to derive the YSO mass and mass accretion rate using their favorite stellar evolution model (for example, Willett et. al uses Baraffe et. al 2015 and Siess et. al 2000 models)
 
@@ -43,7 +43,9 @@ Ancilliary Data:
 ## Customizable aspects of nuts-for-ysos
 - If analyzing a VIRUS spectrum, you can use the from_example_h5file() function in VIRUS_target_prep.py to extract the spectrum for analysis. Within this function you can choose whether or not to rescale the spectrum based off the PanSTARRS g magnitude listed in the h5file, using the argument magscale=True or magscale=False.
 - You can choose the particular spectrum features (values, slopes, ratios of values, and photometric magnitudes) that are used in determining the best-fit model. See main_notebook.ipynb for more information and a demonstration.
-- For the reddening law contained in the model, the Rv can be changed from the default of 3.1 within both least_squares_fitter.py and pymc_fitter.py if needed. The nuts-for-ysos code uses the Cardelli et al 1989 reddening law.
+- The grid of Class III templates can be changed. The nuts-for-ysos code uses the subset of templates listed in template_parameters_set.csv, but all available templates from Manara et al 2013 and Manara et al 2017 are separately listed in the file template_parameters_all_M13_M17.csv. Any template from template_parameters_all_M13_M17.csv can be added to template_parameters_set.csv to automatically include it in the grid.
+- It's also possible to implement other Class III templates, such as the new ones in Claes et al 2024. For access to these templates and their interpolable grid, see the FRAPPE github repository (https://github.com/RikClaes/FRAPPE/tree/main?tab=readme-ov-file). To include these templates in nuts-for-ysos, see the explanation in the nuts-for-ysos main_notebook.ipynb. All you'll need to do is provide the array of fluxes, the wavelength range, the Teffs, and the luminosities.
+- For the reddening law contained in the model, the Rv can be changed from the default of 3.1 in both the least_squares_fit_function and pymc_NUTS_fitting function. The nuts-for-ysos code uses the Cardelli et al 1989 reddening law.
 
 # go nuts!
 ![nuts-for-ysos](https://img.freepik.com/premium-photo/squirrel-with-outer-space-background_839169-22689.jpg)
