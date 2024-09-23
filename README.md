@@ -11,7 +11,7 @@ Included in this repository are several example VIRUS YSO spectra from Willett e
 In brief:
 The user must provide a spectrum of an accreting YSO in the UV-Optical range. The user must also make a list of spectral features (eg. values, slopes, ratios of values, and photometric magnitudes) that will be used to fit the accreting YSO model to the data. Then, nuts-for-ysos fits the model which consists of two components:
   1. a plane-parallel slab of hydrogen in local thermodynamic equilibrium (LTE) to represent emission from accretion.
-  2. a non-accreting Class III YSO template spectrum, which is linearly interpolated from a set of actual Class III YSOs of varying spectral types observed with the X-Shooter spectrograph (Manara et. al 2013, 2017).
+  2. a non-accreting Class III YSO template spectrum, which is linearly interpolated from a set of actual Class III YSOs of varying spectral types -- by default, the set observed with the X-Shooter spectrograph (Manara et. al 2013, 2017).
      
 NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Besides the model parameters themselves, traces for the stellar luminosity and accretion luminosity are also computed. The user can ultimately use this trace to derive the YSO mass and mass accretion rate using their favorite stellar evolution model (for example, Willett et. al uses Baraffe et. al 2015 and Siess et. al 2000 models)
 
