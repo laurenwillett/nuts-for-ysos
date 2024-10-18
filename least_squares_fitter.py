@@ -66,8 +66,7 @@ def K_solver(def_wave_model, init_slab_model, init_photosphere, def_wave_data, Y
     return Kslab_0, Kphot_0
 
 
-def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, def_wave_model, templates_scaled, template_Teffs, template_lums, Rv=3.1, plot=True, xlims ='auto', ylims ='auto'):
-#def least_squares_fit_function(def_wave_data, mean_resolution, YSO, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, Rv=3.1, plot=True, xlims ='auto', ylims ='auto'):
+def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, def_wave_model, templates_scaled, template_Teffs, Rv=3.1, plot=True, xlims ='auto', ylims ='auto'):
 
     """ Takes the features of the YSO spectrum as input, and performs a least-squares fit of the model using each class III template, one-at-a-time. The function tries different values for Av from 0 to 10 in steps of +1. The best fit (the one with the lowest 'chi square') is outputted -- see more explanation in Willett et al. The least-squares fit will be used as an initial starting point for the NUTS sampler.
 
@@ -75,8 +74,6 @@ def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_sp
     ----------
     def_wave_data : numpy array
         The array of wavelength values covered by the target spectrum in Angstroms.
-    mean_resolution : int, float
-        The mean resolution of the spectrum over the wavelength range.
     YSO : numpy array
         The array of the flux values for the YSO spectrum, in units of 10^-17 erg/s/cm2/Angstrom.
     YSO_spectrum_features : numpy array
@@ -87,6 +84,12 @@ def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_sp
         The types of features being inputted in YSO_spectrum_features, the default options being 'point', 'ratio', 'slope', and 'photometry'.
     feature_bounds : list of tuples, lists, or arrays
         The bounds associated with each feature.
+    def_wave_model : numpy array
+        The array of wavelength values covered by the Class III template spectra, in Angstroms.
+    templates_scaled: numpy array
+        The array of scaled Class III template spectra, sorted by ascending order in Teff.
+    template_Teffs: numpy array
+        The array of effective temperatures (in Kelvin) associated to each Class III template.
     Rv : float, optional
         The Rv used in the extinction law from Cardelli et al 1989 (default is 3.1).
     plot : bool, optional
@@ -104,11 +107,7 @@ def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_sp
     """
     print('performing initial least squares fit')
 
-    #take this out and make it an argument instead
-    #template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
-    
     def_wave = np.array(def_wave_model)
-
     T = tt.scalar('T')
     n_e = tt.scalar('n_e')
     tau_0 = tt.scalar('tau_0')
@@ -285,7 +284,7 @@ def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_sp
         init_Teff = template_Teffs[t]
     
         Kslab_0, Kphot_0 = K_solver(def_wave, init_slab_model, init_photosphere, def_wave_data, YSO, 0)
-        Kphot_upper = 1000
+        Kphot_upper = 1000 #WIP should I change this to be higher? can I get rid of it?
         Kphot_lower = 0
         #make a procedure for if an initial guess with Av=0 is infeasible
         Av_try = 0
@@ -321,15 +320,6 @@ def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_sp
             chi_squares.append(chisq)
             fit_photospheres.append(init_photosphere)
             fit_Teffs.append(init_Teff)
-
-            #print(good_model_features)
-            #plt.plot(def_wave, good_model, label = 'model fit', zorder=4, c = 'blue', lw = 1, alpha = 0.5)
-            #plt.plot(def_wave, good_model_components[0], label = 'slab', zorder=3, c = 'black', lw = 1)
-            #plt.plot(def_wave, good_model_components[1], label = 'photosphere', zorder=2, c = 'lime', lw = 1)
-            #plt.plot(def_wave_data, YSO, label = 'data', zorder=1, c = 'red', lw = 1, alpha = 0.5)
-            #plt.xlim(xlims[0], xlims[1])
-            #plt.ylim(ylims[0], ylims[1])
-            #plt.show()
         
         except Exception:
             #print('infeasible SpT \n')
@@ -347,10 +337,10 @@ def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_sp
             best_slab_reddened = best_model_components[0]
             best_photosphere_reddened = best_model_components[1]
             best_model = best_model_components[2]
-            plt.plot(def_wave, best_model, label = 'model fit', zorder=4, c = 'blue', lw = 1, alpha = 0.5)
-            plt.plot(def_wave, best_slab_reddened, label = 'slab', zorder=3, c = 'black', lw = 1)
-            plt.plot(def_wave, best_photosphere_reddened, label = 'photosphere', zorder=2, c = 'lime', lw = 1)
-            plt.plot(def_wave_data, YSO, label = 'data', zorder=1, c = 'red', lw = 1, alpha = 0.5)
+            plt.plot(def_wave, best_model, label = 'total model', zorder=4, c = 'blue', lw = 1, alpha = 0.5)
+            plt.plot(def_wave, best_slab_reddened, label = 'slab model', zorder=3, c = 'black', lw = 1)
+            plt.plot(def_wave, best_photosphere_reddened, label = 'photospheric template', zorder=2, c = 'lime', lw = 1)
+            plt.plot(def_wave_data, YSO, label = 'YSO spectrum', zorder=1, c = 'red', lw = 1, alpha = 0.5)
 
             if xlims == 'auto':
                 plt.xlim(def_wave_data[0], def_wave_data[-1])
@@ -370,8 +360,4 @@ def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_sp
     
     else:
         print('no good least square fit')
-
-
-
-
 
