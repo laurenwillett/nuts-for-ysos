@@ -27,17 +27,13 @@ def make_gamma_dist(x1, p1, x2, p2): #p1 and p2 are percentiles (eg. 16 and 84) 
     dist_space = np.linspace( min(gamma_dist), max(gamma_dist), 1000 )
     return dist_space, kde(dist_space)
 
-def pymc_NUTS_fitting(YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, name, def_wave_model, templates_scaled, template_Teffs, template_lums, init_params, target_accept_set, length, chains, cores, Rv=3.1):
-#def pymc_NUTS_fitting(def_wave_data, mean_resolution, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, name, init_params, target_accept_set, length, chains, cores, Rv=3.1):
-
+def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, def_wave_model, templates_scaled, template_Teffs, template_Teff_uncert, template_lums, template_lum_uncert, Av_uncert, init_params, target_accept_set, length, chains, cores, Rv=3.1):
     """Uses the NUTS sampler in PyMC to fit the model to inputted features of the YSO spectrum, and outputs the full trace for each parameter, along with the resulting distributions for luminosity L and accretion luminosity Lacc. Saves the outputted trace to an ArviZ .netcdf file.
 
     Parameters
     ----------
-    def_wave_data : numpy array
-        The array of wavelength values covered by the target spectrum in Angstroms.
-    mean_resolution : int, float
-        The mean resolution of the spectrum over the wavelength range.
+    name: str
+        The nickname of the YSO, which will be used for the name of the output .netcdf file.
     YSO_spectrum_features : numpy array
         The array of the features taken from the YSO spectrum, which the model will be fit to.
     YSO_spectrum_features_errs : numpy array 
@@ -46,12 +42,24 @@ def pymc_NUTS_fitting(YSO_spectrum_features, YSO_spectrum_features_errs, feature
         The types of features being inputted in YSO_spectrum_features, the default options being 'point', 'ratio', 'slope', and 'photometry'.
     feature_bounds : list of tuples, lists, or arrays
         The bounds associated with each feature.
-    distance_info: float or numpy array
+    distance_info: float, int, or numpy array
         The distance of the YSO in parsecs. It can be inputted either as a float (no errorbars) or as an array with [mean_distance, lower_bound, upper_bound].
-    name: str
-        The nickname of the YSO, which will be used for the name of the output .netcdf file.
+    def_wave_model : numpy array
+        The array of wavelength values covered by the Class III template spectra, in Angstroms.
+    templates_scaled: numpy array
+        The array of scaled Class III template spectra, sorted by ascending order in Teff.
+    template_Teffs: numpy array
+        The array of effective temperatures (in Kelvin) associated to each Class III template.
+    template_Teff_uncert: float, int
+        The uncertainty associated with the effective temperature of each Class III template.
+    template_lums: numpy array
+        The array of luminosities (in log(L/Lsun)) associated to each scaled Class III template.
+    template_lum_uncert: float, int, or numpy array
+        The uncertainty associated with the luminosity of each scaled Class III template. Can be either one number for all templates, or an array with different values for each template.
+    Av_uncert: float or int
+        Any additional uncertainty in the extinction parameter Av not already included within template spectrum uncertainties.
     init_params: numpy array
-        The initial starting point for the NUTS sampler.
+        The initial starting point for the NUTS sampler, for each parameter.
     target_accept_set: float in [0, 1]
         The step size is tuned such that the NUTS sampler will approximate this acceptance rate.
     length: int
@@ -67,7 +75,7 @@ def pymc_NUTS_fitting(YSO_spectrum_features, YSO_spectrum_features_errs, feature
     -------
     trace0: ArviZ InferenceData object
         The resulting trace for the parameters, plus for luminosity L, accretion luminosity Lacc, and the resulting spectral features of the model ('model_spec_features_traced').
-    
+
     """
     def_wave = np.array(def_wave_model)
     #template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
@@ -132,13 +140,16 @@ def pymc_NUTS_fitting(YSO_spectrum_features, YSO_spectrum_features_errs, feature
         Kslab_1e6_log = pm.Deterministic('Kslab_1e6_log', tt.log10(Kslab_1e6))
         Kphot_1e6_log = pm.Deterministic('Kphot_1e6_log', tt.log10(Kphot_1e6))
         Av = pm.Uniform('Av', 0, 10)
-        Av_grid_uncert = pm.HalfNormal('Av_grid_uncert', sigma=(0.5)/3) #not an inferred model param
-        Teff = pm.Uniform('Teff', 2615, 5550)
-        Teff_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=100) #not an inferred model param
+        Av_grid_uncert = pm.HalfNormal('Av_grid_uncert', sigma=Av_uncert) #not an inferred model param
+        Teff = pm.Uniform('Teff', np.min(template_Teffs), np.max(template_Teffs))
+        Teff_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=template_Teff_uncert) #not an inferred model param
         Teff_grid_uncert = pm.Truncated("Teff_grid_uncert", Teff_grid_uncert_dist, lower=-200, upper=200)
-        Lum_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=0.2, shape=(len(template_lums))) #not an inferred model param
+        if isinstance(template_lum_uncert, np.ndarray) == True or isinstance(template_lum_uncert, list) == True:
+            Lum_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=template_lum_uncert, shape=len(template_lum_uncert)) #not an inferred model param
+        elif isinstance(template_lum_uncert, float) == True or isinstance(template_lum_uncert, int) == True:
+            Lum_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=template_lum_uncert)
         Lum_grid_uncert = pm.Truncated("Lum_grid_uncert", Lum_grid_uncert_dist, lower=-0.5, upper=0.5)
-        
+
         #whether or not to make distance a prior or just a scalar depends on what information you have
         if isinstance(distance_info, np.ndarray) == True or isinstance(distance_info, list) == True:
             d_target, d_l_target, d_u_target = distance_info #parsecs
@@ -168,8 +179,10 @@ def pymc_NUTS_fitting(YSO_spectrum_features, YSO_spectrum_features_errs, feature
         photosphere = my_template
         template_lum_right = template_lums_shared[(tt.eq(template_Teffs_shared, template_Teff_right).nonzero()[0][0])]
         template_lum_left = template_lums_shared[(tt.eq(template_Teffs_shared, template_Teff_left).nonzero()[0][0])]
-        my_template_lum = tt.switch(tt.eq(template_Teff_left,(Teff+Teff_grid_uncert)),template_lum_left,(leftweight*template_lum_left + rightweight*template_lum_right))
-        
+        #changed this, because linearly interpolating between values in log space just seems wrong... do the linear interpolation in linear space
+        #my_template_lum = tt.switch(tt.eq(template_Teff_left,(Teff+Teff_grid_uncert)),template_lum_left,(leftweight*template_lum_left + rightweight*template_lum_right))
+        my_template_lum = tt.switch(tt.eq(template_Teff_left,(Teff+Teff_grid_uncert)),template_lum_left, np.log10(leftweight*(10**template_lum_left) + rightweight*(10**template_lum_right)) )
+
         #the making of the slab model: See Manara 2014 (PhD thesis) chapter 2.2 for the equations
 
         #Hydrogen emission
