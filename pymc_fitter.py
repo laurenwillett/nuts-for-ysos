@@ -47,7 +47,7 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
     def_wave_model : numpy array
         The array of wavelength values covered by the Class III template spectra, in Angstroms.
     templates_scaled: numpy array
-        The array of scaled Class III template spectra, sorted by ascending order in Teff.
+        The array of scaled Class III template spectra, sorted by DESCENDING order in Teff.
     template_Teffs: numpy array
         The array of effective temperatures (in Kelvin) associated to each Class III template.
     template_Teff_uncert: float, int
@@ -141,7 +141,7 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
         Kphot_1e6_log = pm.Deterministic('Kphot_1e6_log', tt.log10(Kphot_1e6))
         Av = pm.Uniform('Av', 0, 10)
         Av_grid_uncert = pm.HalfNormal('Av_grid_uncert', sigma=Av_uncert) #not an inferred model param
-        Teff = pm.Uniform('Teff', template_Teffs[1], template_Teffs[-1])
+        Teff = pm.Uniform('Teff', template_Teffs[-1]+200.0, template_Teffs[0]-200.0)
         Teff_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=template_Teff_uncert) #not an inferred model param
         Teff_grid_uncert = pm.Truncated("Teff_grid_uncert", Teff_grid_uncert_dist, lower=-200, upper=200)
         if isinstance(template_lum_uncert, np.ndarray) == True or isinstance(template_lum_uncert, list) == True:
