@@ -141,7 +141,7 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
         Kphot_1e6_log = pm.Deterministic('Kphot_1e6_log', tt.log10(Kphot_1e6))
         Av = pm.Uniform('Av', 0, 10)
         Av_grid_uncert = pm.HalfNormal('Av_grid_uncert', sigma=Av_uncert) #not an inferred model param
-        Teff = pm.Uniform('Teff', np.min(template_Teffs), np.max(template_Teffs))
+        Teff = pm.Uniform('Teff', template_Teffs[1], template_Teffs[-1])
         Teff_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=template_Teff_uncert) #not an inferred model param
         Teff_grid_uncert = pm.Truncated("Teff_grid_uncert", Teff_grid_uncert_dist, lower=-200, upper=200)
         if isinstance(template_lum_uncert, np.ndarray) == True or isinstance(template_lum_uncert, list) == True:
