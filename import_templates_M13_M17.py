@@ -6,7 +6,23 @@ from astropy.table import Table
 from astropy.convolution import Gaussian1DKernel
 from astropy.convolution import convolve
 
-def prep_scale_templates(def_wave_data, mean_resolution):
+def make_def_wave_model_M13_M17(def_wave_data):
+    def_wave_data_trimmed = def_wave_data[(def_wave_data>=3300.0)*(def_wave_data<=10189.0)] #trim data wavelength range to be within that of the templates
+    spacing_left = float(np.diff(def_wave_data_trimmed)[0])
+    spacing_right = float(np.diff(def_wave_data_trimmed)[-1])
+    #let the model include the entire range from 3300.0 to 10189.0, even if the data does not
+    if def_wave_data_trimmed[0]>3300.0+spacing_left:
+        def_wave_ext_left = np.arange(3300.0, def_wave_data_trimmed[0], spacing_left)
+    else:
+        def_wave_ext_left = np.array([])
+    if def_wave_data_trimmed[-1]+spacing_right < 10189.0:
+        def_wave_ext_right = np.arange(def_wave_data_trimmed[-1]+spacing_right, 10189.0, spacing_right)
+    else:
+        def_wave_ext_right = np.array([])
+    def_wave_model = np.concatenate((def_wave_ext_left,def_wave_data_trimmed,def_wave_ext_right))
+    return def_wave_model
+
+def prep_scale_templates_M13_M17(def_wave_data, mean_resolution):
 
     """ Generates the set of class III templates used for model fitting, with the correct resolution to match the resolution of the target spectrum. The function rescales the raw templates (taken from Manara+2013, Manara+2017) so that their median flux values follow a polynomial with temperature Teff. This makes it easier for the NUTS sampler to eventually interpolate between the templates later on.
 You can adjust which templates from Manara+ 2013, 2017 are included/excluded from the grid, by altering the file template_parameters_set.csv
@@ -56,22 +72,10 @@ You can adjust which templates from Manara+ 2013, 2017 are included/excluded fro
         y = a*((x-c)**4) +d
         return y
     
-    def_wave_data_trimmed = def_wave_data[(def_wave_data>=3300.0)*(def_wave_data<=10189.0)] #trim data wavelength range to be within that of the templates
-    spacing_left = float(np.diff(def_wave_data_trimmed)[0])
-    spacing_right = float(np.diff(def_wave_data_trimmed)[-1])
-    #let the model include the entire range from 3300.0 to 10189.0, even if the data does not
-    if def_wave_data_trimmed[0]>3300.0+spacing_left:
-        def_wave_ext_left = np.arange(3300.0, def_wave_data_trimmed[0], spacing_left)
-    else:
-        def_wave_ext_left = np.array([])
-    if def_wave_data_trimmed[-1]+spacing_right < 10189.0:
-        def_wave_ext_right = np.arange(def_wave_data_trimmed[-1]+spacing_right, 10189.0, spacing_right)
-    else:
-        def_wave_ext_right = np.array([])
-    def_wave_model = np.concatenate((def_wave_ext_left,def_wave_data_trimmed,def_wave_ext_right))
-    
+    def_wave_model = make_def_wave_model_M13_M17(def_wave_data)
+
     #for making templates match the resolution of the user-inputted spectrum
-    if np.min(np.diff(def_wave_data_trimmed)) < 0.3:
+    if np.min(np.diff(def_wave_data)) < 0.3:
         print('Warning: inputted data wavelength array contains a spacing of less than 0.3 Angstroms. The template data is defined every 0.3 Angroms, and any data with a higher resolution than this should first be converted to a resolution equal to or lower than the templates.')
 
     def gauss(w, sigma, mu):
@@ -90,16 +94,15 @@ You can adjust which templates from Manara+ 2013, 2017 are included/excluded fro
     template_names = []
     template_SpTs = []
     template_lums = []
-    template_lums_scaled = []
-    template_approx_lums = []
     template_Teffs = []
     medians = []
-    medians_og_scaling = []
 
     for t in range(0, len(template_table)):
         template_name = template_table['Name'][t]
         d_template = template_table['Dist'][t]
         SpT = template_table['SpT'][t]
+        temperature = float(get_temperature(SpT))
+        L_template_log = template_table['log_L__'][t]
 
         #UVB portion
         if template_table['source'][t]=='Manara+2017':
@@ -150,15 +153,13 @@ You can adjust which templates from Manara+ 2013, 2017 are included/excluded fro
         
         og_photosphere = interp_template_total* 1e17 # units of 10^-17 ergs/s/cm^2/A
         dist_scaled_photosphere = og_photosphere*(d_template**2)
-        temperature = float(get_temperature(SpT))
-        L_template_log = template_table['log_L__'][t]
 
         templates_dist_scaled.append(dist_scaled_photosphere)
         template_Teffs.append(temperature)
         template_SpTs.append(SpT)
         template_lums.append(L_template_log)
         template_names.append(template_name)
-        medians.append(np.median(dist_scaled_photosphere[int(np.where(np.abs(def_wave_data-4500)==np.min(np.abs(def_wave_data-4500)))[0][0]):int(np.where(np.abs(def_wave_data-5500)==np.min(np.abs(def_wave_data-5500)))[0][0])]))
+        medians.append(np.median(dist_scaled_photosphere[int(np.where(np.abs(def_wave_model-4500)==np.min(np.abs(def_wave_model-4500)))[0][0]):int(np.where(np.abs(def_wave_model-5500)==np.min(np.abs(def_wave_model-5500)))[0][0])]))
 
     template_Teffs = np.array(template_Teffs)
     template_lums = np.array(template_lums)
