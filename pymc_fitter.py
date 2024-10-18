@@ -51,13 +51,13 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
     template_Teffs: numpy array
         The array of effective temperatures (in Kelvin) associated to each Class III template.
     template_Teff_uncert: float, int
-        The uncertainty associated with the effective temperature of each Class III template.
+        The uncertainty associated with the effective temperature of the Class III templates.
     template_lums: numpy array
         The array of luminosities (in log(L/Lsun)) associated to each scaled Class III template.
     template_lum_uncert: float, int, or numpy array
         The uncertainty associated with the luminosity of each scaled Class III template. Can be either one number for all templates, or an array with different values for each template.
     Av_uncert: float or int
-        Any additional uncertainty in the extinction parameter Av not already included within template spectrum uncertainties.
+        Uncertainty in the extinction parameter Av.
     init_params: numpy array
         The initial starting point for the NUTS sampler, for each parameter.
     target_accept_set: float in [0, 1]
