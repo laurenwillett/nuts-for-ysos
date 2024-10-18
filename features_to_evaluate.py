@@ -83,6 +83,21 @@ def photometry_feature(wave, filt, spectrum):
     Mag = -2.5 * np.log10(mag) + 23.9
     return Mag
     
+def photometry_feature_err(wave, filt, spectrum, err):
+    c = 2.99792458 * (1e10)
+    spectrum = 1e-17*spectrum #spectrum in ergs/s/cm^2/A
+    spectrum = np.ma.masked_invalid(spectrum)
+    temp_spectrum = spectrum * 1e29 * (wave**2) / (c*(10**8)) #units conversion
+    spectrum_err = 1e-17*err #spectrum in ergs/s/cm^2/A
+    spectrum_err = np.ma.masked_invalid(spectrum_err)
+    temp_spectrum_err = spectrum_err * 1e29 * (wave**2) / (c*(10**8)) #units conversion
+    nu =  c / wave
+    dnu = np.diff(nu)
+    dnu = np.hstack([dnu[0], dnu])
+    mag = np.dot((nu/dnu*temp_spectrum), filt) / np.sum((nu/dnu*filt))
+    mag_err = np.sqrt(np.dot(((nu/dnu)*temp_spectrum_err)**2, filt**2)) / abs(np.sum((nu/dnu*filt)))
+    Mag_err = 2.5*0.434*(abs(mag_err/mag))
+    return Mag_err
 
 
 
