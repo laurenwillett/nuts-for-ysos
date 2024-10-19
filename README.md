@@ -1,6 +1,5 @@
 # nuts-for-ysos
-**See Willett et al. 2024 for a full description of the methodology and the model used in nuts-for-ysos, as well as the interpretation of example results from nuts-for-ysos.** 
-DOI: 10.5281/zenodo.13955221
+**See Willett et al. 2024 for a full description of the methodology and the model used in nuts-for-ysos, as well as the interpretation of example results from nuts-for-ysos.**
 
 **See main_notebook.ipynb for an example of how to use the nuts-for-ysos tool.** 
 
@@ -48,4 +47,5 @@ Ancilliary Data:
 - If analyzing a VIRUS spectrum, you can use the from_example_h5file() function in VIRUS_target_prep.py to extract the spectrum for analysis. Within this function you can choose whether or not to rescale the spectrum based off the PanSTARRS g magnitude listed in the h5file, using the argument magscale=True or magscale=False.
 
 # go nuts!
+DOI: 10.5281/zenodo.13955221
 ![nuts-for-ysos](https://img.freepik.com/premium-photo/squirrel-with-outer-space-background_839169-22689.jpg)
