@@ -131,7 +131,7 @@ def least_squares_fit_function(def_wave_data, YSO, YSO_spectrum_features, YSO_sp
     freq_0 = c/lambda_0
     nu = c*(1e8) / def_wave
 
-    full_wave = np.concatenate((np.arange(500.0, def_wave[0], 2), def_wave, np.arange(def_wave[-1]+2, 25002 ,2)))
+    full_wave = np.concatenate((np.arange(500.0, def_wave[0], 5), def_wave, np.arange(def_wave[-1]+5, 25005 ,5)))
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
 
