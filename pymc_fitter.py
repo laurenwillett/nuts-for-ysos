@@ -86,8 +86,8 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
     dnu = tt.extra_ops.diff(nu)
     dnu = tt.concatenate([np.array([dnu[0]]), dnu])
 
-    #for wavelength ranges not covered by the template, just define every 2 angstroms (a super fine wavelength array would make the code take longer to run and be overkill just for calculating the slab model)
-    full_wave = np.concatenate((np.arange(500.0, def_wave[0], 2), def_wave, np.arange(def_wave[-1]+2, 25002 ,2)))
+    #for wavelength ranges not covered by the template, just define every 5 angstroms (a super fine wavelength array would make the code take longer to run and be overkill just for calculating the slab model)
+    full_wave = np.concatenate((np.arange(500.0, def_wave[0], 5), def_wave, np.arange(def_wave[-1]+5, 25005 ,5)))
     wavelength_spacing_model = tt.extra_ops.diff(full_wave)
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
@@ -141,9 +141,11 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
         Kphot_1e6_log = pm.Deterministic('Kphot_1e6_log', tt.log10(Kphot_1e6))
         Av = pm.Uniform('Av', 0, 10)
         Av_grid_uncert = pm.HalfNormal('Av_grid_uncert', sigma=Av_uncert) #not an inferred model param
-        Teff = pm.Uniform('Teff', template_Teffs[-1]+200.0, template_Teffs[0]-200.0)
+        Teff = pm.Uniform('Teff', template_Teffs[-1]+215.0, template_Teffs[0]-215.0)
         Teff_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=template_Teff_uncert) #not an inferred model param
+        #Teff_grid_uncert has to be truncated since the templates occupy a limited range in Teff and it's impossible to go outside of it
         Teff_grid_uncert = pm.Truncated("Teff_grid_uncert", Teff_grid_uncert_dist, lower=-200, upper=200)
+        
         if isinstance(template_lum_uncert, np.ndarray) == True or isinstance(template_lum_uncert, list) == True:
             Lum_grid_uncert_dist = pm.Normal.dist(mu=0.0, sigma=template_lum_uncert, shape=len(template_lum_uncert)) #not an inferred model param
         elif isinstance(template_lum_uncert, float) == True or isinstance(template_lum_uncert, int) == True:

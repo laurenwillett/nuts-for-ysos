@@ -6,23 +6,48 @@ from astropy.table import Table
 from astropy.convolution import Gaussian1DKernel
 from astropy.convolution import convolve
 
-def make_def_wave_model_M13_M17(def_wave_data):
-    def_wave_data_trimmed = def_wave_data[(def_wave_data>=3300.0)*(def_wave_data<=10189.0)] #trim data wavelength range to be within that of the templates
+def make_def_wave_model(def_wave_data, def_wave_templates):
+    #makes a wavelength array with the same spacing as the data, but the range of the templates
+    def_wave_data_trimmed = def_wave_data[(def_wave_data>=np.min(def_wave_templates))*(def_wave_data<=np.max(def_wave_templates))] #trim data wavelength range to be within that of the templates
     spacing_left = float(np.diff(def_wave_data_trimmed)[0])
     spacing_right = float(np.diff(def_wave_data_trimmed)[-1])
-    #let the model include the entire range from 3300.0 to 10189.0, even if the data does not
-    if def_wave_data_trimmed[0]>3300.0+spacing_left:
-        def_wave_ext_left = np.arange(3300.0, def_wave_data_trimmed[0], spacing_left)
+    if def_wave_data_trimmed[0]>np.min(def_wave_templates)+spacing_left:
+        def_wave_ext_left = np.arange(np.min(def_wave_templates), def_wave_data_trimmed[0], spacing_left)
     else:
         def_wave_ext_left = np.array([])
-    if def_wave_data_trimmed[-1]+spacing_right < 10189.0:
-        def_wave_ext_right = np.arange(def_wave_data_trimmed[-1]+spacing_right, 10189.0, spacing_right)
+    if def_wave_data_trimmed[-1]+spacing_right < np.max(def_wave_templates):
+        def_wave_ext_right = np.arange(def_wave_data_trimmed[-1]+spacing_right, np.max(def_wave_templates), spacing_right)
     else:
         def_wave_ext_right = np.array([])
     def_wave_model = np.concatenate((def_wave_ext_left,def_wave_data_trimmed,def_wave_ext_right))
     return def_wave_model
 
-def prep_scale_templates_M13_M17(def_wave_data, mean_resolution):
+def reduce_resolution(def_wave_model, def_wave_templates, flux_templates, mean_resolution):
+    """for making templates match the lower resolution of the user-inputted spectrum
+    def_wave_model : numpy array
+        the desired wavelength range for the templates (lower resolution)
+    def_wave_templates : numpy array
+       the original wavelength array for the templates
+    flux_templates : numpy array
+        the original flux array for the templates
+    mean_resolution : float
+        the desired resolution of the templates
+    """
+    if np.min(np.diff(def_wave_model)) < np.min(np.diff(def_wave_templates)):
+        print('Warning: inputted data wavelength array contains a spacing of less than the templates. Data with a higher resolution than the templates should first be converted to a resolution equal to or lower than the templates.')
+    def gauss(w, sigma, mu):
+        var = sigma**2
+        exp = (-((w-mu)**2)/(2*var)) 
+        N = ((var*2*math.pi)**(-1/2)) * np.exp(exp)
+        return N
+    FWHM = np.mean(def_wave_model)/mean_resolution
+    sigma = FWHM / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    gauss = Gaussian1DKernel(stddev = sigma)
+    convolved_flux_template_total = convolve(flux_templates, gauss, boundary='extend')
+    interp_template_total = np.interp(def_wave_model, def_wave_templates, convolved_flux_template_total, left=0.0, right=0.0)
+    return interp_template_total
+
+def prep_scale_templates_M13_M17(def_wave_model, mean_resolution):
 
     """ Generates the set of class III templates used for model fitting, with the correct resolution to match the resolution of the target spectrum. The function rescales the raw templates (taken from Manara+2013, Manara+2017) so that their median flux values follow a polynomial with temperature Teff. This makes it easier for the NUTS sampler to eventually interpolate between the templates later on.
 You can adjust which templates from Manara+ 2013, 2017 are included/excluded from the grid, by altering the file template_parameters_set.csv
@@ -71,21 +96,6 @@ You can adjust which templates from Manara+ 2013, 2017 are included/excluded fro
     def rescale_function(x, a, c, d):
         y = a*((x-c)**4) +d
         return y
-    
-    def_wave_model = make_def_wave_model_M13_M17(def_wave_data)
-
-    #for making templates match the resolution of the user-inputted spectrum
-    if np.min(np.diff(def_wave_data)) < 0.3:
-        print('Warning: inputted data wavelength array contains a spacing of less than 0.3 Angstroms. The template data is defined every 0.3 Angroms, and any data with a higher resolution than this should first be converted to a resolution equal to or lower than the templates.')
-
-    def gauss(w, sigma, mu):
-        var = sigma**2
-        exp = (-((w-mu)**2)/(2*var)) 
-        N = ((var*2*math.pi)**(-1/2)) * np.exp(exp)
-        return N
-    FWHM = np.mean(def_wave_model)/mean_resolution
-    sigma = FWHM / (2.0 * np.sqrt(2.0 * np.log(2.0)))
-    gauss = Gaussian1DKernel(stddev = sigma)
 
     #load in templates
     template_table = Table.read('template_parameters_set.csv')
@@ -148,9 +158,8 @@ You can adjust which templates from Manara+ 2013, 2017 are included/excluded fro
 
         wave_template_total = np.concatenate((wave_template_UVB, wave_template_VIS))
         flux_template_total = np.concatenate((flux_template_UVB, flux_template_VIS))
-        convolved_flux_template_total = convolve((flux_template_total), gauss, boundary='extend')
-        interp_template_total = np.interp(def_wave_model, wave_template_total, convolved_flux_template_total, left=0.0, right=0.0)
-        
+        interp_template_total = reduce_resolution(def_wave_model, wave_template_total, flux_template_total, mean_resolution)
+
         og_photosphere = interp_template_total* 1e17 # units of 10^-17 ergs/s/cm^2/A
         dist_scaled_photosphere = og_photosphere*(d_template**2)
 
@@ -174,7 +183,7 @@ You can adjust which templates from Manara+ 2013, 2017 are included/excluded fro
         L_template_log_new = np.log10((10**(template_lums[t]))*factor)
         template_lums_new.append(L_template_log_new)
 
-    return [template_Teffs, template_lums_new, def_wave_model, templates_scaled]
+    return [template_Teffs, template_lums_new, templates_scaled]
 
 
 
