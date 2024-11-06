@@ -28,6 +28,7 @@ NUTS seeks the best-fitting model, and outputs a trace of all the parameters. Be
 - astropy 6.1.0
 - corner 2.2.2
 - matplotlib 3.9.1
+- for the separate emission line flux code in the 'utility' folder: specutils 1.18.0 and pyspeckit 1.0.3
 
 ## Input YSO spectrum requirements
 Wavelength Range:
