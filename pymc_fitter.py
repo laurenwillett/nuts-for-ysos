@@ -27,7 +27,7 @@ def make_gamma_dist(x1, p1, x2, p2): #p1 and p2 are percentiles (eg. 16 and 84) 
     dist_space = np.linspace( min(gamma_dist), max(gamma_dist), 1000 )
     return dist_space, kde(dist_space)
 
-def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, def_wave_model, templates_scaled, template_Teffs, template_Teff_uncert, template_lums, template_lum_uncert, Av_uncert, init_params, target_accept_set, length, chains, cores, Rv=3.1):
+def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, feature_types, feature_bounds, distance_info, def_wave_model, templates_scaled, templates_scaled_errs, template_Teffs, template_Teff_uncert, template_lums, template_lum_uncert, Av_uncert, init_params, target_accept_set, length, chains, cores, Rv=3.1):
     """Uses the NUTS sampler in PyMC to fit the model to inputted features of the YSO spectrum, and outputs the full trace for each parameter, along with the resulting distributions for luminosity L and accretion luminosity Lacc. Saves the outputted trace to an ArviZ .netcdf file.
 
     Parameters
@@ -48,6 +48,9 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
         The array of wavelength values covered by the Class III template spectra, in Angstroms.
     templates_scaled: numpy array
         The array of scaled Class III template spectra, sorted by DESCENDING order in Teff.
+    templates_scaled_errs: numpy array or None
+        The array of scaled Class III template spectra uncertainties, sorted by DESCENDING order in Teff.
+        If you don't have spectral uncertainties on the templates, you can set this to None.
     template_Teffs: numpy array
         The array of effective temperatures (in Kelvin) associated to each Class III template.
     template_Teff_uncert: float, int
@@ -71,23 +74,22 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
     Rv : float, optional
         The Rv used in the extinction law from Cardelli et al 1989 (default is 3.1).
 
-        Returns
+    Returns
     -------
     trace0: ArviZ InferenceData object
         The resulting trace for the parameters, plus for luminosity L, accretion luminosity Lacc, and the resulting spectral features of the model ('model_spec_features_traced').
-
+    
     """
     def_wave = np.array(def_wave_model)
-    #template_Teffs, template_lums, def_wave, templates_scaled = prep_scale_templates(def_wave_data, mean_resolution)
-    
+
     print('initializing PyMC fitter')
     c = 2.99792458 * (1e10)
     nu = c*(1e8) / def_wave
     dnu = tt.extra_ops.diff(nu)
     dnu = tt.concatenate([np.array([dnu[0]]), dnu])
 
-    #for wavelength ranges not covered by the template, just define every 5 angstroms (a super fine wavelength array would make the code take longer to run and be overkill just for calculating the slab model)
-    full_wave = np.concatenate((np.arange(500.0, def_wave[0], 5), def_wave, np.arange(def_wave[-1]+5, 25005 ,5)))
+    #for wavelength ranges not covered by the template, just define every 5 (new) angstroms (a super fine wavelength array would make the code take longer to run and be overkill just for calculating/integrating the slab model)
+    full_wave = np.concatenate((np.arange(500.0, def_wave[0], 5), def_wave, np.arange(def_wave[-1]+5, 25002 ,5)))
     wavelength_spacing_model = tt.extra_ops.diff(full_wave)
     nu_2 = c*(1e8) / full_wave
     wave_cm_2 = (full_wave*(1e-8))
@@ -163,7 +165,7 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
         else:
             print('input distance should be in parsecs, as either a float or integer, or a list/array of the format [mean_distance, lower bound , upper bound]')
 
-        #the interpolation between class III templates
+        #the linear interpolation between class III templates
         templates_scaled_shared = tt.as_tensor(np.array(templates_scaled))
         template_Teffs_shared_0 = tt.as_tensor(np.array(template_Teffs))
         template_Teffs_shared = template_Teffs_shared_0
@@ -179,10 +181,21 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
         leftweight = (template_Teff_right-(Teff+Teff_grid_uncert))/(template_Teff_right-template_Teff_left)
         my_template = tt.switch(tt.eq(template_Teff_left,(Teff+Teff_grid_uncert)),template_left,(leftweight*template_left + rightweight*template_right))
         photosphere = my_template
+        #NEW: Include spectral uncertainties if you have them:
+        #to do so, we add uncertainties of interpolated templates in quadrature
+        if isinstance(templates_scaled_errs, np.ndarray) == True:
+            templates_scaled_errs_shared = tt.as_tensor(np.array(templates_scaled_errs))
+            template_right_err = templates_scaled_errs_shared[(tt.eq(template_Teffs_shared, template_Teff_right).nonzero()[0][0])]
+            template_left_err = templates_scaled_errs_shared[(tt.eq(template_Teffs_shared, template_Teff_left).nonzero()[0][0])]
+            my_template_err = tt.switch(tt.eq(template_Teff_left,(Teff+Teff_grid_uncert)),template_left_err,(tt.sqrt(((leftweight*template_left_err)**2) + ((rightweight*template_right_err)**2))))
+            photosphere_err = my_template_err
+        elif templates_scaled_errs==None:
+            photosphere_err = tt.zeros(len(def_wave))
+
         template_lum_right = template_lums_shared[(tt.eq(template_Teffs_shared, template_Teff_right).nonzero()[0][0])]
         template_lum_left = template_lums_shared[(tt.eq(template_Teffs_shared, template_Teff_left).nonzero()[0][0])]
-        #changed this, because linearly interpolating between values in log space just seems wrong... do the linear interpolation in linear space
         #my_template_lum = tt.switch(tt.eq(template_Teff_left,(Teff+Teff_grid_uncert)),template_lum_left,(leftweight*template_lum_left + rightweight*template_lum_right))
+        #changed this, because linearly interpolating between values in log space just seems wrong... do the linear interpolation in linear space
         my_template_lum = tt.switch(tt.eq(template_Teff_left,(Teff+Teff_grid_uncert)),template_lum_left, np.log10(leftweight*(10**template_lum_left) + rightweight*(10**template_lum_right)) )
 
         #the making of the slab model: See Manara 2014 (PhD thesis) chapter 2.2 for the equations
@@ -282,24 +295,56 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
         reddened_photosphere = (photosphere * (10 ** (-0.4 * A_specific)))
         model = reddened_slab*Kslab + reddened_photosphere*Kphot
         y = model
+        if isinstance(templates_scaled_errs, np.ndarray) == True:
+            reddened_photosphere_err = (photosphere_err * (10 ** (-0.4 * A_specific)))
+            model_err = reddened_photosphere_err*Kphot
+            y_err = model_err
+        elif templates_scaled_errs==None:
+            y_err = tt.zeros(len(def_wave))
 
         #finally, we calculate the spectral features of the model so that the sampler can compare with the target YSO spectral features
+        #NEW: propagate spectral uncertainties of the template to calculate model uncertainty
         number_of_features = len(YSO_spectrum_features)
         model_spec_features = tt.zeros(number_of_features)
+        model_spec_features_errs = tt.zeros(number_of_features)
         for f in range(0, len(feature_types)):
             if feature_types[f] == 'point':
-                model_spec_features = tt.set_subtensor(model_spec_features[f], (tt.mean(y[(tt.isclose(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.isclose(def_wave, feature_bounds[f][1]).nonzero()[0][0])])))
+                wavelength_range = ((tt.isclose(def_wave, feature_bounds[f][0]).nonzero()[0][0]),(tt.isclose(def_wave, feature_bounds[f][1]).nonzero()[0][0]))
+                length_pt = tt.shape(y[wavelength_range[0]:wavelength_range[1]])[0]
+                model_spec_features = tt.set_subtensor(model_spec_features[f], (tt.mean(y[wavelength_range[0]:wavelength_range[1]])))
+                model_spec_features_errs = tt.set_subtensor(model_spec_features_errs[f], tt.sqrt(tt.sum((y_err[wavelength_range[0]:wavelength_range[1]])**2))/length_pt)
             if feature_types[f] == 'slope':
-                model_spec_features = tt.set_subtensor(model_spec_features[f],(tt.mean(y[(tt.isclose(def_wave, feature_bounds[f][2]).nonzero()[0][0]):(tt.isclose(def_wave, feature_bounds[f][3]).nonzero()[0][0])])) - (tt.mean(y[(tt.isclose(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.isclose(def_wave, feature_bounds[f][1]).nonzero()[0][0])])))
+                wavelength_range_right = ((tt.isclose(def_wave, feature_bounds[f][2]).nonzero()[0][0]), (tt.isclose(def_wave, feature_bounds[f][3]).nonzero()[0][0]))
+                wavelength_range_left = ((tt.isclose(def_wave, feature_bounds[f][0]).nonzero()[0][0]), (tt.isclose(def_wave, feature_bounds[f][1]).nonzero()[0][0]))
+                length_right = tt.shape(y[wavelength_range_right[0]:wavelength_range_right[1]])[0]
+                length_left = tt.shape(y[wavelength_range_left[0]:wavelength_range_left[1]])[0]
+                err_right = tt.sqrt(tt.sum((y_err[wavelength_range_right[0]:wavelength_range_right[1]])**2))/length_right
+                err_left = tt.sqrt(tt.sum((y_err[wavelength_range_left[0]:wavelength_range_left[1]])**2))/length_left
+                model_spec_features = tt.set_subtensor(model_spec_features[f],(tt.mean(y[wavelength_range_right[0]:wavelength_range_right[1]])) - (tt.mean(y[wavelength_range_left[0]:wavelength_range_left[1]])))
+                model_spec_features_errs = tt.set_subtensor(model_spec_features_errs[f], tt.sqrt(err_right**2 + err_left**2))
             if feature_types[f] == 'ratio':
-                model_spec_features = tt.set_subtensor(model_spec_features[f], (tt.mean(y[(tt.isclose(def_wave, feature_bounds[f][0]).nonzero()[0][0]):(tt.isclose(def_wave, feature_bounds[f][1]).nonzero()[0][0])])) / (tt.mean(y[(tt.isclose(def_wave, feature_bounds[f][2]).nonzero()[0][0]):(tt.isclose(def_wave, feature_bounds[f][3]).nonzero()[0][0])])))
+                wavelength_range_denom = ((tt.isclose(def_wave, feature_bounds[f][2]).nonzero()[0][0]), (tt.isclose(def_wave, feature_bounds[f][3]).nonzero()[0][0]))
+                wavelength_range_num = ((tt.isclose(def_wave, feature_bounds[f][0]).nonzero()[0][0]), (tt.isclose(def_wave, feature_bounds[f][1]).nonzero()[0][0]))
+                denom = tt.mean(y[wavelength_range_denom[0]:wavelength_range_denom[1]])
+                num = tt.mean(y[wavelength_range_num[0]:wavelength_range_num[1]])
+                length_denom = tt.shape(y[wavelength_range_denom[0]:wavelength_range_denom[1]])[0]
+                length_num = tt.shape(y[wavelength_range_num[0]:wavelength_range_num[1]])[0]
+                err_denom = tt.sqrt(tt.sum((y_err[wavelength_range_denom[0]:wavelength_range_denom[1]])**2))/length_denom
+                err_num = tt.sqrt(tt.sum((y_err[wavelength_range_num[0]:wavelength_range_num[1]])**2))/length_num
+                model_spec_features = tt.set_subtensor(model_spec_features[f], (num / denom))
+                model_spec_features_errs = tt.set_subtensor(model_spec_features_errs[f], tt.sqrt((err_num/num)**2 + (err_denom/denom)**2))
             if feature_types[f] == 'photometry':
-                temp_spectrum = 1e-17 *model * 1e29 * (def_wave**2) / (c*(10**8)) #units conversion
+                temp_spectrum = 1e-17 *y * 1e29 * (def_wave**2) / (c*(10**8)) #units conversion
+                temp_spectrum_err = 1e-17 *y_err * 1e29 * (def_wave**2) / (c*(10**8)) #units conversion
                 #this line convolves the model spectrum with the photometric filter
                 mag = tt.dot((nu/dnu*temp_spectrum), feature_bounds[f]) / tt.sum((nu/dnu*feature_bounds[f]))
+                mag_err = tt.sqrt(tt.dot((nu/dnu*temp_spectrum_err)**2, (feature_bounds[f])**2)) / tt.sum((nu/dnu*feature_bounds[f]))
                 Mag = -2.5 * tt.log10(mag) + 23.9
+                Mag_err = 2.5*0.434*(tt.abs(mag_err/mag))
                 model_spec_features = tt.set_subtensor(model_spec_features[f], Mag)
+                model_spec_features_errs = tt.set_subtensor(model_spec_features_errs[f], Mag_err)
         model_spec_features_traced = pm.Deterministic('model_spec_features_traced', model_spec_features)
+        model_spec_features_traced_errs = pm.Deterministic('model_spec_features_traced_errs', model_spec_features_errs)
 
         #determine accretion luminosity Lacc and luminosity L from the model
         #accretion luminosity Lacc is determined by integrating over the computed slab
@@ -309,7 +354,10 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
         L_log_current = tt.log10(Kphot * (10**my_template_lum) * (distance**2))
         L_log_traced = pm.Deterministic('L_log_traced',L_log_current)
         
-        observation = pm.Normal('observation', mu=model_spec_features, sigma=YSO_spectrum_features_errs, observed = YSO_spectrum_features)
+        #observation = pm.Normal('observation', mu=model_spec_features, sigma=YSO_spectrum_features_errs, observed = YSO_spectrum_features)
+        #now changed to include model uncertainty term if needed:
+        sigma_tot = tt.sqrt(model_spec_features_errs**2 + YSO_spectrum_features_errs**2)
+        observation = pm.Normal('observation', mu=model_spec_features, sigma=sigma_tot, observed = YSO_spectrum_features)
         if isinstance(distance_info, np.ndarray) == True or isinstance(distance_info, list) == True:
             trace0 = pm.sample(length, chains = chains, cores = cores, target_accept = target_accept_set, initvals = {'T': init_params[0], 'n_e_log': np.log10(init_params[1]), 'tau_0': init_params[2], 'Kslab_1e6': init_params[3]*1e6, 'Kphot_1e6': init_params[4]*1e6, 'Av': init_params[5], 'Teff': init_params[6], 'distance': d_target})
         else:
