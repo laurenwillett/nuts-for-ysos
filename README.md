@@ -1,5 +1,5 @@
 # nuts-for-ysos
-**See Willett et al. (in prep) for a full description of the methodology and the model used in nuts-for-ysos, as well as the interpretation of example results from nuts-for-ysos.**
+**See Willett et al. 2025 for a full description of the methodology and the model used in nuts-for-ysos, as well as the interpretation of example results from nuts-for-ysos.**
 
 **See main_notebook.ipynb for an example of how to use the nuts-for-ysos tool.** 
 
