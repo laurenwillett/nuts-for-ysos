@@ -50,6 +50,6 @@ Ancilliary Data:
 - If analyzing a VIRUS spectrum, you can use the from_example_h5file() function in VIRUS_target_prep.py to extract the spectrum for analysis. Within this function you can choose whether or not to rescale the spectrum based off the PanSTARRS g magnitude listed in the h5file, using the argument magscale=True or magscale=False.
 
 # go nuts!
-DOI: [10.5281/zenodo.13955221](https://doi.org/10.5281/zenodo.13955222)
+DOI: [10.5281/zenodo.14672152](https://doi.org/10.5281/zenodo.14672152)
 
 ![nuts-for-ysos](https://img.freepik.com/premium-photo/squirrel-with-outer-space-background_839169-22689.jpg)
