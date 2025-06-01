@@ -243,9 +243,9 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
         lamb_2 = (c/nu_2) *(1e4)
         lamb_2_alt = tt.switch(lamb_2 < lamb_0, lamb_2, lamb_0)
         f_out = tt.zeros(len(nu_2))
-        for n in range(0,6): #equation 2.28
-            Cn = Cns_fb[n]
-            f_out+= tt.switch(lamb_2 < lamb_0, Cn * ((1/lamb_2_alt) - (1/lamb_0))**((n)/2),0)
+        for n in range(1,7): #equation 2.28
+            Cn = Cns_fb[n-1]
+            f_out+= tt.switch(lamb_2 < lamb_0, Cn * ((1/lamb_2_alt) - (1/lamb_0))**((n-1)/2),0)
         sigma_out = tt.switch(lamb_2 < lamb_0, (1e-18)*(lamb_2_alt**3)*(((1/lamb_2_alt) - (1/lamb_0))**(3/2))*(f_out),0)
         k_fb__out = 0.750*(T**(-5/2))*(tt.exp(alpha/(lamb_0*T))) * (1-(tt.exp(-alpha/(lamb_2*T)))) * sigma_out #equation 2.26
         lamb1_2 = tt.switch((lamb_2 <= 0.182), lamb_2, 0)
@@ -258,9 +258,9 @@ def pymc_NUTS_fitting(name, YSO_spectrum_features, YSO_spectrum_features_errs, f
         y1_2 = tt.zeros(lamb1_2.shape)
         y2_2 = tt.zeros(lamb2_2.shape)
         y3_2 = tt.zeros(lamb3_2.shape)
-        for n in range(0,6): #equation 2.29
-            y2_2+= ((5040/T)**((n+1)/2)) * (((lamb2_2**2)*Ans_ff_1[n]) + Bns_ff_1[n] + (Cns_ff_1[n]/lamb2_2) + (Dns_ff_1[n]/(lamb2_2**2)) + (Ens_ff_1[n]/(lamb2_2**3)) + (Fns_ff_1[n]/(lamb2_2**4)))
-            y3_2+= ((5040/T)**((n+1)/2)) * (((lamb3_2**2)*Ans_ff_2[n]) + Bns_ff_2[n] + (Cns_ff_2[n]/lamb3_2) + (Dns_ff_2[n]/(lamb3_2**2)) + (Ens_ff_2[n]/(lamb3_2**3)) + (Fns_ff_2[n]/(lamb3_2**4)))
+        for n in range(1,7): #equation 2.29
+            y2_2+= ((5040/T)**((n+1)/2)) * (((lamb2_2**2)*Ans_ff_1[n-1]) + Bns_ff_1[n-1] + (Cns_ff_1[n-1]/lamb2_2) + (Dns_ff_1[n-1]/(lamb2_2**2)) + (Ens_ff_1[n-1]/(lamb2_2**3)) + (Fns_ff_1[n-1]/(lamb2_2**4)))
+            y3_2+= ((5040/T)**((n+1)/2)) * (((lamb3_2**2)*Ans_ff_2[n-1]) + Bns_ff_2[n-1] + (Cns_ff_2[n-1]/lamb3_2) + (Dns_ff_2[n-1]/(lamb3_2**2)) + (Ens_ff_2[n-1]/(lamb3_2**3)) + (Fns_ff_2[n-1]/(lamb3_2**4)))
         k_ff__out = (tt.concatenate((y1_2, y2_2, y3_2)))*(1e-29)
         coeff2 = ((h**3)/((2*math.pi*me*k_B)**(3/2)))
         n_H_out=0
